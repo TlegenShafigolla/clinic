@@ -14,7 +14,7 @@ public class PatientController {
     }
 
     @GetMapping("/patient")
-    public Patient getPatinet(){
+    public Patient getPatient(){
         return patientService.getPatient();
     }
 }
