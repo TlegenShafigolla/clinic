@@ -5,6 +5,8 @@ import kz.tlegen.clinic.service.DoctorService;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.List;
+
 @RestController
 public class DoctorController {
     public final DoctorService doctorService;
@@ -14,7 +16,7 @@ public class DoctorController {
     }
 
     @GetMapping("/doctor")
-    public Doctor getDoctor(){
-        return doctorService.getDoctor();
+    public List<Doctor> getAllDoctors() {
+        return doctorService.getAllDoctors();
     }
 }
