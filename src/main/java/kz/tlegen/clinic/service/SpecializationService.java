@@ -1,5 +1,9 @@
 package kz.tlegen.clinic.service;
 
+import kz.tlegen.clinic.dto.specialization.SpecializationRequest;
+import kz.tlegen.clinic.dto.specialization.SpecializationResponse;
+import kz.tlegen.clinic.entity.Specialization;
+import kz.tlegen.clinic.exception.SpecializationAlreadyExistsException;
 import kz.tlegen.clinic.mapper.SpecializationMapper;
 import kz.tlegen.clinic.repository.SpecializationRepository;
 import org.springframework.stereotype.Service;
@@ -12,6 +16,21 @@ public class SpecializationService {
     public SpecializationService(SpecializationRepository repository, SpecializationMapper mapper) {
         this.repository = repository;
         this.mapper = mapper;
+    }
+
+    public SpecializationResponse create(
+            SpecializationRequest request
+    ){
+        String name = request.getName();
+        if(repository.existsByName(name)){
+            throw new SpecializationAlreadyExistsException(
+                    "Specialization already exists: " + name
+            );
+        }
+        Specialization specialization = mapper.toEntity(request);
+        Specialization savedSpecialization = repository.save(specialization);
+
+        return mapper.toResponse(savedSpecialization);
     }
 
 }
