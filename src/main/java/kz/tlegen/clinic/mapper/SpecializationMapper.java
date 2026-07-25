@@ -3,7 +3,9 @@ package kz.tlegen.clinic.mapper;
 import kz.tlegen.clinic.dto.specialization.SpecializationRequest;
 import kz.tlegen.clinic.dto.specialization.SpecializationResponse;
 import kz.tlegen.clinic.entity.Specialization;
+import org.springframework.stereotype.Component;
 
+@Component
 public class SpecializationMapper {
     public Specialization toEntity(SpecializationRequest request){
         String name=request.getName();
