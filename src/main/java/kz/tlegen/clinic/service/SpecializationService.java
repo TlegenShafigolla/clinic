@@ -8,6 +8,8 @@ import kz.tlegen.clinic.mapper.SpecializationMapper;
 import kz.tlegen.clinic.repository.SpecializationRepository;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
+
 @Service
 public class SpecializationService {
     private final SpecializationRepository repository;
@@ -20,9 +22,9 @@ public class SpecializationService {
 
     public SpecializationResponse create(
             SpecializationRequest request
-    ){
+    ) {
         String name = request.getName();
-        if(repository.existsByName(name)){
+        if (repository.existsByName(name)) {
             throw new SpecializationAlreadyExistsException(
                     "Specialization already exists: " + name
             );
@@ -33,4 +35,10 @@ public class SpecializationService {
         return mapper.toResponse(savedSpecialization);
     }
 
+    public List<SpecializationResponse> findAll() {
+        List<Specialization> specializations = repository.findAll();
+        return specializations.stream()
+                .map(mapper::toResponse)
+                .toList();
+    }
 }
