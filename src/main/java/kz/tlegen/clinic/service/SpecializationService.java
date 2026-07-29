@@ -52,4 +52,27 @@ public class SpecializationService {
 
         return mapper.toResponse(specialization);
     }
+
+    public SpecializationResponse update(
+            Long id,
+            SpecializationRequest request
+    ) {
+        Specialization specialization = repository.findById(id)
+                .orElseThrow(
+                        () -> new SpecializationNotFoundException(
+                                "Specialization not found with id: " + id
+                        )
+                );
+        String name = request.getName();
+        if (repository.existsByNameAndIdNot(name, id)) {
+            throw new SpecializationAlreadyExistsException(
+                    "Specialization already exists: " + name
+            );
+        }
+        specialization.updateName(name);
+        Specialization updatedSpecialization =
+                repository.save(specialization);
+
+        return mapper.toResponse(updatedSpecialization);
+    }
 }
