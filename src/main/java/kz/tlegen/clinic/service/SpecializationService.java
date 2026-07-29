@@ -4,6 +4,7 @@ import kz.tlegen.clinic.dto.specialization.SpecializationRequest;
 import kz.tlegen.clinic.dto.specialization.SpecializationResponse;
 import kz.tlegen.clinic.entity.Specialization;
 import kz.tlegen.clinic.exception.SpecializationAlreadyExistsException;
+import kz.tlegen.clinic.exception.SpecializationNotFoundException;
 import kz.tlegen.clinic.mapper.SpecializationMapper;
 import kz.tlegen.clinic.repository.SpecializationRepository;
 import org.springframework.stereotype.Service;
@@ -40,5 +41,15 @@ public class SpecializationService {
         return specializations.stream()
                 .map(mapper::toResponse)
                 .toList();
+    }
+
+    public SpecializationResponse findById(Long id) {
+        Specialization specialization = repository.findById(id).orElseThrow(
+                () -> new SpecializationNotFoundException(
+                        "Specialization not found with id: " + id
+                )
+        );
+
+        return mapper.toResponse(specialization);
     }
 }
