@@ -33,4 +33,13 @@ public class SpecializationController {
     public SpecializationResponse findById(@PathVariable Long id) {
         return service.findById(id);
     }
+
+    @PutMapping("/{id}")
+    public SpecializationResponse update(
+            @PathVariable Long id,
+            @Valid @RequestBody
+            SpecializationRequest request
+    ) {
+        return service.update(id, request);
+    }
 }
