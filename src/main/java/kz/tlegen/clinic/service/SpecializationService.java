@@ -75,4 +75,13 @@ public class SpecializationService {
 
         return mapper.toResponse(updatedSpecialization);
     }
+
+    public void delete(Long id) {
+        Specialization specialization = repository.findById(id).orElseThrow(
+                () -> new SpecializationNotFoundException(
+                        "Specialization not found with id: " + id
+                )
+        );
+        repository.delete(specialization);
+    }
 }
