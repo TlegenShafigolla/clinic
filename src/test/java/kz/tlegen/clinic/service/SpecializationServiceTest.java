@@ -174,4 +174,29 @@ public class SpecializationServiceTest {
 
         assertEquals("Dermatologist", specialization.getName());
     }
+
+    @Test
+    void update_shouldThrowException_whenNameBelongsToAnotherSpecialization() {
+        SpecializationRequest request = new SpecializationRequest("Neurologist");
+        Specialization specialization = new Specialization("Dermatology");
+
+        when(repository.findById(2L))
+                .thenReturn(Optional.of(specialization));
+
+        when(repository.existsByNameAndIdNot("Neurologist", 2L))
+                .thenReturn(true);
+
+        SpecializationAlreadyExistsException exception =
+                assertThrows(
+                        SpecializationAlreadyExistsException.class,
+                        () -> service.update(2L, request)
+                );
+
+        assertEquals(
+                "Specialization already exists: Neurologist",
+                exception.getMessage()
+        );
+        verify(repository, never()).save(any());
+        assertEquals("Dermatology", specialization.getName());
+    }
 }
