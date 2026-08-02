@@ -4,6 +4,7 @@ import kz.tlegen.clinic.dto.specialization.SpecializationRequest;
 import kz.tlegen.clinic.dto.specialization.SpecializationResponse;
 import kz.tlegen.clinic.entity.Specialization;
 import kz.tlegen.clinic.exception.SpecializationAlreadyExistsException;
+import kz.tlegen.clinic.exception.SpecializationNotFoundException;
 import kz.tlegen.clinic.mapper.SpecializationMapper;
 import kz.tlegen.clinic.repository.SpecializationRepository;
 import org.junit.jupiter.api.Test;
@@ -96,5 +97,23 @@ public class SpecializationServiceTest {
 
         assertEquals(2L, actualResponse.getId());
         assertEquals("Dermatology", actualResponse.getName());
+    }
+
+    @Test
+    void findById_shouldThrowException_whenSpecializationDoesNotExist() {
+        when(repository.findById(999L))
+                .thenReturn(Optional.empty());
+
+        SpecializationNotFoundException exception =
+                assertThrows(
+                        SpecializationNotFoundException.class,
+                        () -> service.findById(999L)
+                );
+        assertEquals(
+                "Specialization not found with id: 999",
+                exception.getMessage()
+        );
+
+        verify(mapper, never()).toResponse(any());
     }
 }
