@@ -13,6 +13,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -115,5 +116,62 @@ public class SpecializationServiceTest {
         );
 
         verify(mapper, never()).toResponse(any());
+    }
+
+    @Test
+    void findAll_shouldReturnResponses() {
+        Specialization first =
+                new Specialization("Neurologist");
+
+        Specialization second =
+                new Specialization("Cardiologist");
+
+        SpecializationResponse firstResponse =
+                new SpecializationResponse(1L, "Neurologist");
+
+        SpecializationResponse secondResponse =
+                new SpecializationResponse(2L, "Cardiologist");
+
+        when(repository.findAll())
+                .thenReturn(List.of(first, second));
+
+        when(mapper.toResponse(first))
+                .thenReturn(firstResponse);
+
+        when(mapper.toResponse(second))
+                .thenReturn(secondResponse);
+
+        List<SpecializationResponse> result =
+                service.findAll();
+
+        assertEquals(2, result.size());
+        assertEquals("Neurologist", result.get(0).getName());
+        assertEquals("Cardiologist", result.get(1).getName());
+    }
+
+    @Test
+    void update_shouldReturnUpdatedResponse_whenDataIsValid() {
+        SpecializationRequest request = new SpecializationRequest("Dermatologist");
+        Specialization specialization = new Specialization("Dermatology");
+        SpecializationResponse expectedResponse = new SpecializationResponse(2L, "Dermatologist");
+
+        when(repository.findById(2L))
+                .thenReturn(Optional.of(specialization));
+
+        when(repository.existsByNameAndIdNot("Dermatologist", 2L))
+                .thenReturn(false);
+
+        when(repository.save(specialization))
+                .thenReturn(specialization);
+
+        when(mapper.toResponse(specialization))
+                .thenReturn(expectedResponse);
+        SpecializationResponse actualResponse =
+                service.update(2L, request);
+
+        assertEquals(2L, actualResponse.getId());
+        assertEquals("Dermatologist", actualResponse.getName());
+
+        assertEquals("Dermatologist", specialization.getName());
     }
 }
