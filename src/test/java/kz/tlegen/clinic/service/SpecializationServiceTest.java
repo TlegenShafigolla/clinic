@@ -12,6 +12,8 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.util.Optional;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
@@ -73,5 +75,26 @@ public class SpecializationServiceTest {
                 exception.getMessage()
         );
         verify(repository, never()).save(any());
+    }
+
+    @Test
+    void findById_shouldReturnResponse_whenSpecializationExists() {
+        Specialization specialization = new Specialization("Dermatology");
+
+
+        SpecializationResponse expectedResponse =
+                new SpecializationResponse(2L, "Dermatology");
+
+        when(repository.findById(2L))
+                .thenReturn(Optional.of(specialization));
+
+        when(mapper.toResponse(specialization))
+                .thenReturn(expectedResponse);
+
+        SpecializationResponse actualResponse =
+                service.findById(2L);
+
+        assertEquals(2L, actualResponse.getId());
+        assertEquals("Dermatology", actualResponse.getName());
     }
 }
