@@ -44,12 +44,7 @@ public class SpecializationService {
     }
 
     public SpecializationResponse findById(Long id) {
-        Specialization specialization = repository.findById(id).orElseThrow(
-                () -> new SpecializationNotFoundException(
-                        "Specialization not found with id: " + id
-                )
-        );
-
+        Specialization specialization = getByIdOrThrow(id);
         return mapper.toResponse(specialization);
     }
 
@@ -57,12 +52,7 @@ public class SpecializationService {
             Long id,
             SpecializationRequest request
     ) {
-        Specialization specialization = repository.findById(id)
-                .orElseThrow(
-                        () -> new SpecializationNotFoundException(
-                                "Specialization not found with id: " + id
-                        )
-                );
+        Specialization specialization = getByIdOrThrow(id);
         String name = request.getName();
         if (repository.existsByNameAndIdNot(name, id)) {
             throw new SpecializationAlreadyExistsException(
@@ -77,11 +67,14 @@ public class SpecializationService {
     }
 
     public void delete(Long id) {
-        Specialization specialization = repository.findById(id).orElseThrow(
+        Specialization specialization = getByIdOrThrow(id);
+        repository.delete(specialization);
+    }
+
+    private Specialization getByIdOrThrow(Long id) {
+        return repository.findById(id).orElseThrow(
                 () -> new SpecializationNotFoundException(
                         "Specialization not found with id: " + id
-                )
-        );
-        repository.delete(specialization);
+                ));
     }
 }
