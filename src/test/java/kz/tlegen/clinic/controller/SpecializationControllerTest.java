@@ -105,13 +105,30 @@ class SpecializationControllerTest {
         );
         when(service.findAll()).thenReturn(responses);
         mockMvc.perform(
-                get("/api/specializations"))
-                        .andExpect(status().isOk())
-                        .andExpect(jsonPath("$.length()").value(2))
-                        .andExpect(jsonPath("$[0].id").value(1))
-                        .andExpect(jsonPath("$[0].name").value("Cardiology"))
-                        .andExpect(jsonPath("$[1].id").value(2))
-                        .andExpect(jsonPath("$[1].name").value("Neurology"));
+                        get("/api/specializations"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(2))
+                .andExpect(jsonPath("$[0].id").value(1))
+                .andExpect(jsonPath("$[0].name").value("Cardiology"))
+                .andExpect(jsonPath("$[1].id").value(2))
+                .andExpect(jsonPath("$[1].name").value("Neurology"));
 
     }
+
+    @Test
+    void findById_shouldReturn200AndResponse_whenSpecializationExists()
+            throws Exception {
+        SpecializationResponse response =
+                new SpecializationResponse(2L, "Neurology");
+        when(service.findById(2L))
+                .thenReturn(response);
+
+        mockMvc.perform(
+                        get("/api/specializations/{id}", 2L))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(2))
+                .andExpect(jsonPath("$.name").value("Neurology"));
+
+    }
+
 }
