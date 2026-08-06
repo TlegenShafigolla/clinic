@@ -199,4 +199,27 @@ public class SpecializationServiceTest {
         verify(repository, never()).save(any());
         assertEquals("Dermatology", specialization.getName());
     }
+
+    @Test
+    void update_shouldThrowException_whenSpecializationDoesNotExist() {
+        SpecializationRequest request =
+                new SpecializationRequest("Dermatologist");
+        when(repository.findById(999L))
+                .thenReturn(Optional.empty());
+        SpecializationNotFoundException exception =
+                assertThrows(
+                        SpecializationNotFoundException.class,
+                        () -> service.update(999L, request)
+                );
+
+        assertEquals(
+                "Specialization not found with id: 999",
+                exception.getMessage()
+        );
+
+        verify(repository, never())
+                .existsByNameAndIdNot(any(), any());
+
+        verify(repository, never()).save(any());
+    }
 }
