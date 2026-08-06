@@ -2,6 +2,7 @@ package kz.tlegen.clinic.controller;
 
 import kz.tlegen.clinic.dto.specialization.SpecializationRequest;
 import kz.tlegen.clinic.dto.specialization.SpecializationResponse;
+import kz.tlegen.clinic.exception.SpecializationAlreadyExistsException;
 import kz.tlegen.clinic.service.SpecializationService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -68,5 +69,28 @@ class SpecializationControllerTest {
 
         verify(service, never())
                 .create(any(SpecializationRequest.class));
+    }
+
+    @Test
+    void create_shouldReturn409_whenSpecializationAlreadyExists() throws Exception {
+        when(service.create(any(SpecializationRequest.class)))
+                .thenThrow(
+                        new SpecializationAlreadyExistsException(
+                                "Specialization already exists: Cardiology"
+                        )
+                );
+        mockMvc.perform(
+                        post("/api/specializations")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content("""
+                                        {
+                                          "name": "Cardiology"
+                                        }
+                                        """)
+                )
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.status").value(409))
+                .andExpect(jsonPath("$.message")
+                        .value("Specialization already exists: Cardiology"));
     }
 }
