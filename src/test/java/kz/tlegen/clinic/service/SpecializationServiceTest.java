@@ -222,4 +222,15 @@ public class SpecializationServiceTest {
 
         verify(repository, never()).save(any());
     }
+
+
+    @Test
+    void delete_shouldDeleteSpecialization_whenSpecializationExists() {
+        Specialization specialization =
+                new Specialization("Dermatology");
+        when(repository.findById(2L))
+                .thenReturn(Optional.of(specialization));
+        service.delete(2L);
+        verify(repository).delete(specialization);
+    }
 }
