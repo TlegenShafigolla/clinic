@@ -11,11 +11,14 @@ import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
+import java.util.List;
+
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -92,5 +95,23 @@ class SpecializationControllerTest {
                 .andExpect(jsonPath("$.status").value(409))
                 .andExpect(jsonPath("$.message")
                         .value("Specialization already exists: Cardiology"));
+    }
+
+    @Test
+    void findAll_shouldReturn200AndResponses() throws Exception {
+        List<SpecializationResponse> responses = List.of(
+                new SpecializationResponse(1L, "Cardiology"),
+                new SpecializationResponse(2L, "Neurology")
+        );
+        when(service.findAll()).thenReturn(responses);
+        mockMvc.perform(
+                get("/api/specializations"))
+                        .andExpect(status().isOk())
+                        .andExpect(jsonPath("$.length()").value(2))
+                        .andExpect(jsonPath("$[0].id").value(1))
+                        .andExpect(jsonPath("$[0].name").value("Cardiology"))
+                        .andExpect(jsonPath("$[1].id").value(2))
+                        .andExpect(jsonPath("$[1].name").value("Neurology"));
+
     }
 }
