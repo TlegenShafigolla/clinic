@@ -233,4 +233,22 @@ public class SpecializationServiceTest {
         service.delete(2L);
         verify(repository).delete(specialization);
     }
+
+    @Test
+    void delete_shouldThrowException_whenSpecializationDoesNotExist() {
+        when(repository.findById(999L))
+                .thenReturn(Optional.empty());
+
+        SpecializationNotFoundException exception =
+                assertThrows(
+                        SpecializationNotFoundException.class,
+                        () -> service.delete(999L)
+                );
+
+        assertEquals(
+                "Specialization not found with id: 999",
+                exception.getMessage()
+        );
+        verify(repository, never()).delete(any());
+    }
 }
