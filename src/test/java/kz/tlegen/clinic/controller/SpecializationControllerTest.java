@@ -162,18 +162,69 @@ class SpecializationControllerTest {
         )).thenReturn(response);
 
         mockMvc.perform(
-                put("/api/specializations/{id}", 2L)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("""
-                                {
-                                  "name": "Dermatologist"
-                                }
-                                """)
-        )
+                        put("/api/specializations/{id}", 2L)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content("""
+                                        {
+                                          "name": "Dermatologist"
+                                        }
+                                        """)
+                )
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(2))
                 .andExpect(jsonPath("$.name").value("Dermatologist"));
     }
 
+    @Test
+    void update_shouldReturn404_whenSpecializationDoesNotExist()
+            throws Exception {
+        when(service.update(
+                eq(999L),
+                any(SpecializationRequest.class)
+        )).thenThrow(
+                new SpecializationNotFoundException(
+                        "Specialization not found with id: 999"
+                )
+        );
 
+        mockMvc.perform(
+                        put("/api/specializations/{id}", 999L)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content("""
+                                        {
+                                          "name": "Dermatologist"
+                                        }
+                                        """)
+                )
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.status").value(404))
+                .andExpect(jsonPath("$.message")
+                        .value("Specialization not found with id: 999"));
+    }
+
+    @Test
+    void update_shouldReturn409_whenSpecializationAlreadyExists()
+            throws Exception {
+        when(service.update(
+                eq(2L),
+                any(SpecializationRequest.class)
+        )).thenThrow(
+                new SpecializationAlreadyExistsException(
+                        "Specialization already exists: Neurology"
+                )
+        );
+        mockMvc.perform(
+                        put("/api/specializations/{id}", 2L)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content("""
+                                        {
+                                          "name": "Neurology"
+                                        }
+                                        """)
+                )
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.status").value(409))
+                .andExpect(jsonPath("$.message")
+                        .value("Specialization already exists: Neurology"));
+    }
 }
