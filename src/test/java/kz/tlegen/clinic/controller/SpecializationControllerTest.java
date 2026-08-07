@@ -227,4 +227,14 @@ class SpecializationControllerTest {
                 .andExpect(jsonPath("$.message")
                         .value("Specialization already exists: Neurology"));
     }
+
+    @Test
+    void delete_shouldReturn204_whenSpecializationExists()
+            throws Exception {
+        mockMvc.perform(
+                delete("/api/specializations/{id}", 2L)
+        ).andExpect(status().isNoContent());
+
+        verify(service).delete(2L);
+    }
 }
