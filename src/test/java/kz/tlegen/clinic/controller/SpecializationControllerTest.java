@@ -16,10 +16,8 @@ import java.util.List;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
 
+import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -236,5 +234,22 @@ class SpecializationControllerTest {
         ).andExpect(status().isNoContent());
 
         verify(service).delete(2L);
+    }
+
+    @Test
+    void delete_shouldReturn404_whenSpecializationDoesNotExist()
+            throws Exception {
+        doThrow(
+                new SpecializationNotFoundException(
+                        "Specialization not found with id: 999"
+                )
+        ).when(service).delete(999L);
+
+        mockMvc.perform(
+                        delete("/api/specializations/{id}", 999L)
+                ).andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.status").value(404))
+                .andExpect(jsonPath("$.message")
+                        .value("Specialization not found with id: 999"));
     }
 }
