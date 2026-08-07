@@ -3,6 +3,7 @@ package kz.tlegen.clinic.controller;
 import kz.tlegen.clinic.dto.specialization.SpecializationRequest;
 import kz.tlegen.clinic.dto.specialization.SpecializationResponse;
 import kz.tlegen.clinic.exception.SpecializationAlreadyExistsException;
+import kz.tlegen.clinic.exception.SpecializationNotFoundException;
 import kz.tlegen.clinic.service.SpecializationService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -131,4 +132,21 @@ class SpecializationControllerTest {
 
     }
 
+    @Test
+    void findById_shouldReturn404_whenSpecializationDoesNotExist()
+            throws Exception {
+        when(service.findById(999L))
+                .thenThrow(
+                        new SpecializationNotFoundException(
+                                "Specialization not found with id: 999"
+                        )
+                );
+        mockMvc.perform(
+                        get("/api/specializations/{id}", 999L)
+                )
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.status").value(404))
+                .andExpect(jsonPath("$.message")
+                        .value("Specialization not found with id: 999"));
+    }
 }
