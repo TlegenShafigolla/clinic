@@ -15,12 +15,12 @@ import org.springframework.test.web.servlet.MockMvc;
 import java.util.List;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -149,4 +149,31 @@ class SpecializationControllerTest {
                 .andExpect(jsonPath("$.message")
                         .value("Specialization not found with id: 999"));
     }
+
+    @Test
+    void update_shouldReturn200AndResponse_whenRequestIsValid()
+            throws Exception {
+        SpecializationResponse response =
+                new SpecializationResponse(2L, "Dermatologist");
+
+        when(service.update(
+                eq(2L),
+                any(SpecializationRequest.class)
+        )).thenReturn(response);
+
+        mockMvc.perform(
+                put("/api/specializations/{id}", 2L)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "name": "Dermatologist"
+                                }
+                                """)
+        )
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(2))
+                .andExpect(jsonPath("$.name").value("Dermatologist"));
+    }
+
+
 }
