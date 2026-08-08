@@ -9,6 +9,7 @@ import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.postgresql.PostgreSQLContainer;
 
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 
@@ -33,5 +34,12 @@ public class SpecializationRepositoryTest {
 
         assertTrue(exists);
 
+    }
+
+    @Test
+    void existsByName_shouldReturnFalse_whenSpecializationDoesNotExist(){
+        boolean exists =
+                repository.existsByName("Neurology");
+        assertFalse(exists);
     }
 }
