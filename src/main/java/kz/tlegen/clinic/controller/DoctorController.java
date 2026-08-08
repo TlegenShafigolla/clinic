@@ -1,6 +1,5 @@
 package kz.tlegen.clinic.controller;
 
-import kz.tlegen.clinic.model.Doctor;
 import kz.tlegen.clinic.service.DoctorService;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
