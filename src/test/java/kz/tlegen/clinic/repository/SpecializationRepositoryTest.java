@@ -50,4 +50,15 @@ public class SpecializationRepositoryTest {
                 repository.existsByNameAndIdNot("Neurology", 999L);
         assertTrue(exists);
     }
+
+    @Test
+    void existsByNameAndIdNot_shouldReturnFalse_whenNameBelongsToSameSpecialization() {
+        Specialization saved =
+                repository.save(new Specialization("Neurology"));
+
+        Long id = saved.getId();
+        boolean exists =
+                repository.existsByNameAndIdNot("Neurology", id);
+        assertFalse(exists);
+    }
 }
