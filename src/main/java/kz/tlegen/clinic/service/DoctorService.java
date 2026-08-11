@@ -1,5 +1,6 @@
 package kz.tlegen.clinic.service;
 
+import kz.tlegen.clinic.entity.Doctor;
 import kz.tlegen.clinic.repository.DoctorRepository;
 import org.springframework.stereotype.Service;
 
