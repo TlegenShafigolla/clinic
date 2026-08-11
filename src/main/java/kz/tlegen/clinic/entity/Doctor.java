@@ -46,6 +46,9 @@ public class Doctor {
         this.active = active;
         this.specialization = specialization;
     }
+    public Long getId() {
+        return id;
+    }
 
     public String getFirstName() {
         return firstName;
@@ -63,7 +66,7 @@ public class Doctor {
         this.lastName = lastName;
     }
 
-    public Integer getExperienceYear() {
+    public Integer getExperienceYears() {
         return experienceYears;
     }
 
