@@ -10,6 +10,8 @@ import kz.tlegen.clinic.repository.DoctorRepository;
 import kz.tlegen.clinic.repository.SpecializationRepository;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
+
 @Service
 public class DoctorService {
     private final DoctorRepository doctorRepository;
@@ -36,5 +38,13 @@ public class DoctorService {
         Doctor doctor = mapper.toEntity(request, specialization);
         Doctor savedDoctor = doctorRepository.save(doctor);
         return mapper.toResponse(savedDoctor);
+    }
+
+    public List<DoctorResponse> findAll() {
+        List<Doctor> doctors = doctorRepository.findAll();
+        return doctors.stream()
+                .map(mapper::toResponse)
+                .toList();
+
     }
 }
