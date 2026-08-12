@@ -46,6 +46,7 @@ public class Doctor {
         this.active = active;
         this.specialization = specialization;
     }
+
     public Long getId() {
         return id;
     }
@@ -84,5 +85,17 @@ public class Doctor {
 
     public Specialization getSpecialization() {
         return specialization;
+    }
+
+    public void update(String firstName,
+                       String lastName,
+                       Integer experienceYears,
+                       boolean active,
+                       Specialization specialization) {
+        this.firstName = firstName;
+        this.lastName = lastName;
+        this.experienceYears = experienceYears;
+        this.active = active;
+        this.specialization = specialization;
     }
 }

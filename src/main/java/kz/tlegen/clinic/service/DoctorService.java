@@ -29,12 +29,7 @@ public class DoctorService {
         Long specializationId = request.getSpecializationId();
 
         Specialization specialization =
-                specializationRepository.findById(specializationId)
-                        .orElseThrow(
-                                () -> new SpecializationNotFoundException(
-                                        "Specialization not found with id: " + specializationId
-                                )
-                        );
+                getSpecializationByIdOrThrow(specializationId);
 
         Doctor doctor = mapper.toEntity(request, specialization);
         Doctor savedDoctor = doctorRepository.save(doctor);
@@ -50,8 +45,40 @@ public class DoctorService {
     }
 
     public DoctorResponse findById(Long id) {
-        Doctor doctor = doctorRepository.findById(id)
-                .orElseThrow(() -> new DoctorNotFoundException("Doctor not found with id: " + id));
+        Doctor doctor = getByIdOrThrow(id);
         return mapper.toResponse(doctor);
+    }
+
+    public void delete(Long id) {
+        Doctor doctor = getByIdOrThrow(id);
+        doctorRepository.delete(doctor);
+    }
+
+    public DoctorResponse update(Long id, DoctorRequest request) {
+        Doctor doctor = getByIdOrThrow(id);
+        Long specializationId = request.getSpecializationId();
+
+        Specialization specialization =
+                getSpecializationByIdOrThrow(specializationId);
+
+        doctor.update(request.getFirstName(),
+                request.getLastName(),
+                request.getExperienceYears(),
+                request.isActive(),
+                specialization);
+        Doctor savedDoctor = doctorRepository.save(doctor);
+        return mapper.toResponse(savedDoctor);
+    }
+
+    private Doctor getByIdOrThrow(Long id) {
+        return doctorRepository.findById(id).orElseThrow(
+                () -> new DoctorNotFoundException("Doctor not found with id: " + id)
+        );
+    }
+
+    private Specialization getSpecializationByIdOrThrow(Long id) {
+        return specializationRepository.findById(id).orElseThrow(() -> new SpecializationNotFoundException(
+                "Specialization not found with id: " + id
+        ));
     }
 }
