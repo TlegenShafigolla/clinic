@@ -4,6 +4,7 @@ import kz.tlegen.clinic.dto.doctor.DoctorRequest;
 import kz.tlegen.clinic.dto.doctor.DoctorResponse;
 import kz.tlegen.clinic.entity.Doctor;
 import kz.tlegen.clinic.entity.Specialization;
+import kz.tlegen.clinic.exception.DoctorNotFoundException;
 import kz.tlegen.clinic.exception.SpecializationNotFoundException;
 import kz.tlegen.clinic.mapper.DoctorMapper;
 import kz.tlegen.clinic.repository.DoctorRepository;
@@ -46,5 +47,11 @@ public class DoctorService {
                 .map(mapper::toResponse)
                 .toList();
 
+    }
+
+    public DoctorResponse findById(Long id) {
+        Doctor doctor = doctorRepository.findById(id)
+                .orElseThrow(() -> new DoctorNotFoundException("Doctor not found with id: " + id));
+        return mapper.toResponse(doctor);
     }
 }
