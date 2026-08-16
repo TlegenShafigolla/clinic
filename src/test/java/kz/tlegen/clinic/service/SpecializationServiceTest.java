@@ -174,4 +174,81 @@ public class SpecializationServiceTest {
 
         assertEquals("Dermatologist", specialization.getName());
     }
+
+    @Test
+    void update_shouldThrowException_whenNameBelongsToAnotherSpecialization() {
+        SpecializationRequest request = new SpecializationRequest("Neurologist");
+        Specialization specialization = new Specialization("Dermatology");
+
+        when(repository.findById(2L))
+                .thenReturn(Optional.of(specialization));
+
+        when(repository.existsByNameAndIdNot("Neurologist", 2L))
+                .thenReturn(true);
+
+        SpecializationAlreadyExistsException exception =
+                assertThrows(
+                        SpecializationAlreadyExistsException.class,
+                        () -> service.update(2L, request)
+                );
+
+        assertEquals(
+                "Specialization already exists: Neurologist",
+                exception.getMessage()
+        );
+        verify(repository, never()).save(any());
+        assertEquals("Dermatology", specialization.getName());
+    }
+
+    @Test
+    void update_shouldThrowException_whenSpecializationDoesNotExist() {
+        SpecializationRequest request =
+                new SpecializationRequest("Dermatologist");
+        when(repository.findById(999L))
+                .thenReturn(Optional.empty());
+        SpecializationNotFoundException exception =
+                assertThrows(
+                        SpecializationNotFoundException.class,
+                        () -> service.update(999L, request)
+                );
+
+        assertEquals(
+                "Specialization not found with id: 999",
+                exception.getMessage()
+        );
+
+        verify(repository, never())
+                .existsByNameAndIdNot(any(), any());
+
+        verify(repository, never()).save(any());
+    }
+
+
+    @Test
+    void delete_shouldDeleteSpecialization_whenSpecializationExists() {
+        Specialization specialization =
+                new Specialization("Dermatology");
+        when(repository.findById(2L))
+                .thenReturn(Optional.of(specialization));
+        service.delete(2L);
+        verify(repository).delete(specialization);
+    }
+
+    @Test
+    void delete_shouldThrowException_whenSpecializationDoesNotExist() {
+        when(repository.findById(999L))
+                .thenReturn(Optional.empty());
+
+        SpecializationNotFoundException exception =
+                assertThrows(
+                        SpecializationNotFoundException.class,
+                        () -> service.delete(999L)
+                );
+
+        assertEquals(
+                "Specialization not found with id: 999",
+                exception.getMessage()
+        );
+        verify(repository, never()).delete(any());
+    }
 }
