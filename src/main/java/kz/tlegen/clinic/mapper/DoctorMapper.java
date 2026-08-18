@@ -7,7 +7,7 @@ import kz.tlegen.clinic.entity.Specialization;
 import org.springframework.stereotype.Component;
 
 @Component
-public class DoctorMapper {
+public class  DoctorMapper {
     public Doctor toEntity(DoctorRequest request, Specialization specialization) {
         return new Doctor(request.getFirstName(),
                 request.getLastName(),
