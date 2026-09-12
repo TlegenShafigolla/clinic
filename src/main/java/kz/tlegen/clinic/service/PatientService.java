@@ -58,6 +58,7 @@ public class PatientService {
     private Patient getPatientByIdOrThrow(Long id) {
         return patientRepository.findById(id)
                 .orElseThrow(
+                        
                         () -> new PatientNotFoundException("Patient not found with id: " + id));
     }
 

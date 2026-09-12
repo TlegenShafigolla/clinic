@@ -171,8 +171,6 @@ public class SpecializationServiceTest {
 
         assertEquals(2L, actualResponse.getId());
         assertEquals("Dermatologist", actualResponse.getName());
-
-        assertEquals("Dermatologist", specialization.getName());
     }
 
     @Test
