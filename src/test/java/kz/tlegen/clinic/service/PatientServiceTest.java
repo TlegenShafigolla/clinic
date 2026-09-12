@@ -4,7 +4,6 @@ import kz.tlegen.clinic.dto.patient.PatientRequest;
 import kz.tlegen.clinic.dto.patient.PatientResponse;
 import kz.tlegen.clinic.entity.Patient;
 import kz.tlegen.clinic.exception.PatientNotFoundException;
-import kz.tlegen.clinic.exception.SpecializationNotFoundException;
 import kz.tlegen.clinic.mapper.PatientMapper;
 import kz.tlegen.clinic.repository.PatientRepository;
 import org.junit.jupiter.api.Test;
