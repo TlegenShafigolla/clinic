@@ -2,7 +2,6 @@ package kz.tlegen.clinic.controller;
 
 import kz.tlegen.clinic.dto.doctor.DoctorRequest;
 import kz.tlegen.clinic.dto.doctor.DoctorResponse;
-import kz.tlegen.clinic.dto.specialization.SpecializationRequest;
 import kz.tlegen.clinic.exception.DoctorNotFoundException;
 import kz.tlegen.clinic.exception.SpecializationNotFoundException;
 import kz.tlegen.clinic.service.DoctorService;
