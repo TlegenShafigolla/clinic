@@ -62,6 +62,29 @@ public class AppointmentService {
         return mapper.toResponse(appointment);
     }
 
+    public void delete(Long id) {
+        Appointment appointment = getAppointmentByIdOrThrow(id);
+        appointmentRepository.delete(appointment);
+    }
+
+    public AppointmentResponse update(Long id, AppointmentRequest request) {
+        Appointment appointment = getAppointmentByIdOrThrow(id);
+
+        Doctor doctor = doctorRepository.findById(request.getDoctorId()).orElseThrow(
+                () -> new DoctorNotFoundException("Doctor not found with id: " + request.getDoctorId())
+        );
+        Patient patient = patientRepository.findById(request.getPatientId()).orElseThrow(
+                () -> new PatientNotFoundException("Patient not found with id: " + request.getPatientId())
+        );
+        appointment.update(doctor, patient,
+                request.getAppointmentDateTime(),
+                request.getStatus(),
+                request.getReason());
+
+        Appointment savedAppointment = appointmentRepository.save(appointment);
+        return mapper.toResponse(savedAppointment);
+    }
+
     private Appointment getAppointmentByIdOrThrow(Long id) {
         return appointmentRepository.findById(id).orElseThrow(() -> new AppointmentNotFoundException(
                 "Appointment not found with id: " + id
