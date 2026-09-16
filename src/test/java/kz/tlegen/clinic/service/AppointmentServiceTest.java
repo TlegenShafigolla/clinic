@@ -4,6 +4,7 @@ import kz.tlegen.clinic.dto.appointment.AppointmentRequest;
 import kz.tlegen.clinic.dto.appointment.AppointmentResponse;
 import kz.tlegen.clinic.entity.*;
 import kz.tlegen.clinic.exception.AppointmentNotFoundException;
+import kz.tlegen.clinic.exception.AppointmentTimeConflictException;
 import kz.tlegen.clinic.exception.DoctorNotFoundException;
 import kz.tlegen.clinic.exception.PatientNotFoundException;
 import kz.tlegen.clinic.mapper.AppointmentMapper;
@@ -156,6 +157,60 @@ public class AppointmentServiceTest {
         verify(doctorRepository).findById(1L);
         verify(patientRepository).findById(999L);
         verify(appointmentRepository, never()).save(any());
+    }
+
+    @Test
+    void create_shouldThrowAppointmentTimeConflictException() {
+
+        AppointmentRequest request = new AppointmentRequest(1L, 1L,
+                LocalDate.of(2026, 9, 20).atStartOfDay(),
+                AppointmentStatus.SCHEDULED,
+                "Consultation");
+
+        Specialization specialization =
+                new Specialization("Cardiology");
+
+        Doctor doctor =
+                new Doctor("Alex", "Smith", 5, true, specialization);
+
+        Patient patient =
+                new Patient(
+                        "Maria",
+                        "Manas",
+                        LocalDate.of(2000, 5, 10),
+                        "+77001234567",
+                        true
+                );
+
+        when(doctorRepository.findById(1L)).thenReturn(Optional.of(doctor));
+        when(patientRepository.findById(1L)).thenReturn(Optional.of(patient));
+        when(appointmentRepository.existsByDoctorIdAndAppointmentDateTime(
+                1L,
+                request.getAppointmentDateTime()
+        )).thenReturn(true);
+
+        AppointmentTimeConflictException exception =
+                assertThrows(
+                        AppointmentTimeConflictException.class,
+                        () -> appointmentService.create(request)
+                );
+
+        assertEquals(
+                "Doctor already has an appointment at this time",
+                exception.getMessage()
+        );
+
+        verify(doctorRepository).findById(1L);
+        verify(patientRepository).findById(1L);
+
+        verify(appointmentRepository)
+                .existsByDoctorIdAndAppointmentDateTime(
+                        1L,
+                        request.getAppointmentDateTime()
+                );
+        verify(appointmentMapper, never()).toEntity(request, doctor, patient);
+        verify(appointmentRepository, never()).save(any());
+
     }
 
     @Test
@@ -345,6 +400,55 @@ public class AppointmentServiceTest {
         verify(appointmentRepository).save(appointment);
         verify(appointmentMapper).toResponse(appointment);
     }
+
+    @Test
+    void update_shouldThrowAppointmentTimeConflictException() {
+        AppointmentRequest oldRequest = new AppointmentRequest(
+                1L,
+                1L,
+                LocalDate.of(2026, 9, 20).atStartOfDay(),
+                AppointmentStatus.SCHEDULED,
+                "Consultation"
+        );
+
+        AppointmentRequest request = new AppointmentRequest(1L, 1L,
+                LocalDate.of(2026, 9, 22).atStartOfDay(),
+                AppointmentStatus.SCHEDULED,
+                "Consultation");
+
+        Appointment appointment = getAppointment(oldRequest);
+
+        when(appointmentRepository.findById(10L)).thenReturn(Optional.of(appointment));
+        when(doctorRepository.findById(1L)).thenReturn(Optional.of(appointment.getDoctor()));
+        when(patientRepository.findById(1L)).thenReturn(Optional.of(appointment.getPatient()));
+        when(appointmentRepository.existsByDoctorIdAndAppointmentDateTimeAndIdNot(
+                        1L,
+                        request.getAppointmentDateTime(),
+                        10L
+                )
+        ).thenReturn(true);
+        AppointmentTimeConflictException exception = assertThrows(
+                AppointmentTimeConflictException.class,
+                () -> appointmentService.update(10L, request));
+        assertEquals("Doctor already has an appointment at this time", exception.getMessage());
+        assertEquals(
+                oldRequest.getAppointmentDateTime(),
+                appointment.getAppointmentDateTime()
+        );
+
+        verify(appointmentRepository).findById(10L);
+        verify(doctorRepository).findById(1L);
+        verify(patientRepository).findById(1L);
+        verify(appointmentRepository)
+                .existsByDoctorIdAndAppointmentDateTimeAndIdNot(
+                        1L,
+                        request.getAppointmentDateTime(),
+                        10L
+                );
+
+        verify(appointmentRepository, never()).save(any());
+    }
+
 
     @Test
     void update_shouldThrowAppointmentNotFoundException() {

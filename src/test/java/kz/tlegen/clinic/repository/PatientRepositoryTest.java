@@ -65,36 +65,40 @@ public class PatientRepositoryTest {
 
         @Test
         void findAll_shouldReturnAllPatients() {
-            Patient alex =
-                    new Patient(
-                            "Alex",
-                            "Smith",
-                            LocalDate.of(2000, 5, 10),
-                            "+77001234567",
-                            true
-                    );
+            Patient firstPatient = new Patient(
+                    "Alex",
+                    "Smith",
+                    LocalDate.of(2000, 5, 10),
+                    "+77001234567",
+                    true
+            );
 
-            Patient maria =
-                    new Patient(
-                            "Maria",
-                            "Kiss",
-                            LocalDate.of(2005, 6, 14),
-                            "+77001267569",
-                            true
-                    );
-            Patient savedAlexPatient = patientRepository.save(alex);
-            Patient savedMariaPatient = patientRepository.save(maria);
+            Patient secondPatient = new Patient(
+                    "Maria",
+                    "Brown",
+                    LocalDate.of(2001, 6, 15),
+                    "+77007654321",
+                    true
+            );
+
+            patientRepository.saveAll(
+                    List.of(firstPatient, secondPatient)
+            );
+
             List<Patient> patients = patientRepository.findAll();
 
             assertEquals(2, patients.size());
+
             assertTrue(
                     patients.stream()
-                            .anyMatch(patient -> patient.getFirstName().equals("Alex"))
+                            .anyMatch(patient ->
+                                    patient.getFirstName().equals("Alex"))
             );
 
             assertTrue(
                     patients.stream()
-                            .anyMatch(patient -> patient.getFirstName().equals("Maria"))
+                            .anyMatch(patient ->
+                                    patient.getFirstName().equals("Maria"))
             );
         }
 }

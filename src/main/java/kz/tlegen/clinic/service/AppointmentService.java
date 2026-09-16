@@ -6,6 +6,7 @@ import kz.tlegen.clinic.entity.Appointment;
 import kz.tlegen.clinic.entity.Doctor;
 import kz.tlegen.clinic.entity.Patient;
 import kz.tlegen.clinic.exception.AppointmentNotFoundException;
+import kz.tlegen.clinic.exception.AppointmentTimeConflictException;
 import kz.tlegen.clinic.exception.DoctorNotFoundException;
 import kz.tlegen.clinic.exception.PatientNotFoundException;
 import kz.tlegen.clinic.mapper.AppointmentMapper;
@@ -45,6 +46,16 @@ public class AppointmentService {
         Patient patient = patientRepository.findById(patientId).orElseThrow(
                 () -> new PatientNotFoundException("Patient not found with id: " + patientId)
         );
+        boolean timeConflict  = appointmentRepository.existsByDoctorIdAndAppointmentDateTime(
+                request.getDoctorId(),
+                request.getAppointmentDateTime()
+        );
+        if(timeConflict ) {
+            throw new AppointmentTimeConflictException(
+                    "Doctor already has an appointment at this time"
+            );
+        }
+
         Appointment appointment = mapper.toEntity(request, doctor, patient);
         Appointment savedAppointment = appointmentRepository.save(appointment);
         return mapper.toResponse(savedAppointment);
@@ -76,6 +87,20 @@ public class AppointmentService {
         Patient patient = patientRepository.findById(request.getPatientId()).orElseThrow(
                 () -> new PatientNotFoundException("Patient not found with id: " + request.getPatientId())
         );
+
+        boolean timeConflict =
+                appointmentRepository.existsByDoctorIdAndAppointmentDateTimeAndIdNot(
+                        request.getDoctorId(),
+                        request.getAppointmentDateTime(),
+                        id
+                );
+
+        if(timeConflict) {
+            throw new AppointmentTimeConflictException(
+                    "Doctor already has an appointment at this time"
+            );
+        }
+
         appointment.update(doctor, patient,
                 request.getAppointmentDateTime(),
                 request.getStatus(),
