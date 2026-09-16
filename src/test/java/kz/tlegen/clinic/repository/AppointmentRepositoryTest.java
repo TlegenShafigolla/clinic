@@ -274,4 +274,48 @@ public class AppointmentRepositoryTest {
 
         assertFalse(exists);
     }
+
+    @Test
+    void existsByDoctorIdAndAppointmentDateTimeAndIdNot_shouldReturnFalseForSameAppointment() {
+        Specialization specialization =
+                specializationRepository.save(
+                        new Specialization("Cardiology")
+                );
+
+        Doctor doctor = doctorRepository.save(
+                new Doctor(
+                        "Alex",
+                        "Smith",
+                        5,
+                        true,
+                        specialization
+                )
+        );
+
+        Patient patient = patientRepository.save(
+                new Patient(
+                        "Arman",
+                        "Tsarukian",
+                        LocalDate.of(2000, 5, 10),
+                        "+77001234567",
+                        true
+                )
+        );
+
+        Appointment appointment = new Appointment(
+                doctor,
+                patient,
+                LocalDateTime.of(2026, 9, 25, 10, 0),
+                AppointmentStatus.SCHEDULED,
+                "Consultation"
+        );
+        Appointment saved =
+                appointmentRepository.save(appointment);
+        boolean exists = appointmentRepository.existsByDoctorIdAndAppointmentDateTimeAndIdNot(
+                doctor.getId(),
+                saved.getAppointmentDateTime(),
+                saved.getId()
+        );
+        assertFalse(exists);
+    }
 }
