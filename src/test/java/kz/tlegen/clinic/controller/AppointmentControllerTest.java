@@ -268,6 +268,33 @@ class AppointmentControllerTest {
     }
 
     @Test
+    void put_shouldReturnConflictWhenDoctorTimeIsBusy() throws Exception {
+        when(appointmentService.update(
+                eq(10L),
+                any(AppointmentRequest.class)
+        )).thenThrow(new AppointmentTimeConflictException("Doctor already has an appointment at this time"));
+
+        mockMvc.perform(put("/api/appointments/{id}", 10L)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                    {
+                                     "doctorId": 1,
+                                     "patientId": 1,
+                                     "appointmentDateTime": "2026-09-25T10:00:00",
+                                     "status": "COMPLETED",
+                                     "reason": "Checked"
+                                    }
+                                """)
+                ).andExpect(status().isConflict())
+                .andExpect(jsonPath("$.status").value(409))
+                .andExpect(jsonPath("$.message")
+                        .value("Doctor already has an appointment at this time"));
+
+        verify(appointmentService)
+                .update(eq(10L), any(AppointmentRequest.class));
+    }
+
+    @Test
     void delete_shouldReturnNoContent() throws Exception {
         mockMvc.perform(delete("/api/appointments/{id}", 10L))
                 .andExpect(status().isNoContent());
