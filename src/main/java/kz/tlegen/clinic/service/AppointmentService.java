@@ -14,6 +14,7 @@ import kz.tlegen.clinic.repository.AppointmentRepository;
 import kz.tlegen.clinic.repository.DoctorRepository;
 import kz.tlegen.clinic.repository.PatientRepository;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
@@ -37,6 +38,7 @@ public class AppointmentService {
         this.mapper = mapper;
     }
 
+    @Transactional
     public AppointmentResponse create(AppointmentRequest request) {
         Long doctorId = request.getDoctorId();
         Long patientId = request.getPatientId();
@@ -46,11 +48,11 @@ public class AppointmentService {
         Patient patient = patientRepository.findById(patientId).orElseThrow(
                 () -> new PatientNotFoundException("Patient not found with id: " + patientId)
         );
-        boolean timeConflict  = appointmentRepository.existsByDoctorIdAndAppointmentDateTime(
+        boolean timeConflict = appointmentRepository.existsByDoctorIdAndAppointmentDateTime(
                 request.getDoctorId(),
                 request.getAppointmentDateTime()
         );
-        if(timeConflict ) {
+        if (timeConflict) {
             throw new AppointmentTimeConflictException(
                     "Doctor already has an appointment at this time"
             );
@@ -61,6 +63,7 @@ public class AppointmentService {
         return mapper.toResponse(savedAppointment);
     }
 
+    @Transactional(readOnly = true)
     public List<AppointmentResponse> findAll() {
         List<Appointment> appointments = appointmentRepository.findAll();
         return appointments.stream()
@@ -68,16 +71,19 @@ public class AppointmentService {
                 .toList();
     }
 
+    @Transactional(readOnly = true)
     public AppointmentResponse findById(Long id) {
         Appointment appointment = getAppointmentByIdOrThrow(id);
         return mapper.toResponse(appointment);
     }
 
+    @Transactional
     public void delete(Long id) {
         Appointment appointment = getAppointmentByIdOrThrow(id);
         appointmentRepository.delete(appointment);
     }
 
+    @Transactional
     public AppointmentResponse update(Long id, AppointmentRequest request) {
         Appointment appointment = getAppointmentByIdOrThrow(id);
 
@@ -95,7 +101,7 @@ public class AppointmentService {
                         id
                 );
 
-        if(timeConflict) {
+        if (timeConflict) {
             throw new AppointmentTimeConflictException(
                     "Doctor already has an appointment at this time"
             );
