@@ -7,6 +7,7 @@ import kz.tlegen.clinic.exception.PatientNotFoundException;
 import kz.tlegen.clinic.mapper.PatientMapper;
 import kz.tlegen.clinic.repository.PatientRepository;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
@@ -20,12 +21,14 @@ public class PatientService {
         this.mapper = mapper;
     }
 
+    @Transactional
     public PatientResponse create(PatientRequest request) {
         Patient patient = mapper.toEntity(request);
         Patient savedPatient = patientRepository.save(patient);
         return mapper.toResponse(savedPatient);
     }
 
+    @Transactional(readOnly = true)
     public List<PatientResponse> findAll() {
         List<Patient> patients = patientRepository.findAll();
         return patients.stream()
@@ -33,17 +36,20 @@ public class PatientService {
                 .toList();
     }
 
+    @Transactional(readOnly = true)
     public PatientResponse findById(Long id) {
         Patient patient = getPatientByIdOrThrow(id);
         return mapper.toResponse(patient);
     }
 
+    @Transactional
     public void delete(Long id) {
         Patient patient = getPatientByIdOrThrow(id);
         patientRepository.delete(patient);
 
     }
 
+    @Transactional
     public PatientResponse update(Long id, PatientRequest request) {
         Patient patient = getPatientByIdOrThrow(id);
         patient.update(request.getFirstName(),
@@ -58,7 +64,7 @@ public class PatientService {
     private Patient getPatientByIdOrThrow(Long id) {
         return patientRepository.findById(id)
                 .orElseThrow(
-                        
+
                         () -> new PatientNotFoundException("Patient not found with id: " + id));
     }
 

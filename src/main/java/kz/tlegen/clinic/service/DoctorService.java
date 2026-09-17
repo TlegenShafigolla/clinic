@@ -10,6 +10,7 @@ import kz.tlegen.clinic.mapper.DoctorMapper;
 import kz.tlegen.clinic.repository.DoctorRepository;
 import kz.tlegen.clinic.repository.SpecializationRepository;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
@@ -25,6 +26,7 @@ public class DoctorService {
         this.mapper = mapper;
     }
 
+    @Transactional
     public DoctorResponse create(DoctorRequest request) {
         Long specializationId = request.getSpecializationId();
 
@@ -36,6 +38,7 @@ public class DoctorService {
         return mapper.toResponse(savedDoctor);
     }
 
+    @Transactional(readOnly = true)
     public List<DoctorResponse> findAll() {
         List<Doctor> doctors = doctorRepository.findAll();
         return doctors.stream()
@@ -44,16 +47,19 @@ public class DoctorService {
 
     }
 
+    @Transactional(readOnly = true)
     public DoctorResponse findById(Long id) {
         Doctor doctor = getByIdOrThrow(id);
         return mapper.toResponse(doctor);
     }
 
+    @Transactional
     public void delete(Long id) {
         Doctor doctor = getByIdOrThrow(id);
         doctorRepository.delete(doctor);
     }
 
+    @Transactional
     public DoctorResponse update(Long id, DoctorRequest request) {
         Doctor doctor = getByIdOrThrow(id);
         Long specializationId = request.getSpecializationId();

@@ -8,6 +8,7 @@ import kz.tlegen.clinic.exception.SpecializationNotFoundException;
 import kz.tlegen.clinic.mapper.SpecializationMapper;
 import kz.tlegen.clinic.repository.SpecializationRepository;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
@@ -21,6 +22,7 @@ public class SpecializationService {
         this.mapper = mapper;
     }
 
+    @Transactional
     public SpecializationResponse create(
             SpecializationRequest request
     ) {
@@ -36,6 +38,7 @@ public class SpecializationService {
         return mapper.toResponse(savedSpecialization);
     }
 
+    @Transactional(readOnly = true)
     public List<SpecializationResponse> findAll() {
         List<Specialization> specializations = repository.findAll();
         return specializations.stream()
@@ -43,11 +46,13 @@ public class SpecializationService {
                 .toList();
     }
 
+    @Transactional(readOnly = true)
     public SpecializationResponse findById(Long id) {
         Specialization specialization = getByIdOrThrow(id);
         return mapper.toResponse(specialization);
     }
 
+    @Transactional
     public SpecializationResponse update(
             Long id,
             SpecializationRequest request
@@ -66,6 +71,7 @@ public class SpecializationService {
         return mapper.toResponse(updatedSpecialization);
     }
 
+    @Transactional
     public void delete(Long id) {
         Specialization specialization = getByIdOrThrow(id);
         repository.delete(specialization);
