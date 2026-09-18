@@ -34,6 +34,13 @@ public class User {
         this.active = active;
     }
 
+    public void update(String email, String password, Role role, boolean active) {
+        this.email = email;
+        this.password = password;
+        this.role = role;
+        this.active = active;
+    }
+
     public Long getId() {
         return id;
     }
