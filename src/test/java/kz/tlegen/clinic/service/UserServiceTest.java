@@ -4,6 +4,7 @@ import kz.tlegen.clinic.dto.user.UserRequest;
 import kz.tlegen.clinic.dto.user.UserResponse;
 import kz.tlegen.clinic.entity.Role;
 import kz.tlegen.clinic.entity.User;
+import kz.tlegen.clinic.exception.UserAlreadyExistsException;
 import kz.tlegen.clinic.mapper.UserMapper;
 import kz.tlegen.clinic.repository.UserRepository;
 import org.junit.jupiter.api.Test;
@@ -13,8 +14,8 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 public class UserServiceTest {
@@ -69,5 +70,36 @@ public class UserServiceTest {
         verify(userMapper).toEntity(request);
         verify(userRepository).save(user);
         verify(userMapper).toResponse(user);
+    }
+
+    @Test
+    public void create_shouldThrowUserAlreadyExistsException() {
+        UserRequest request = new UserRequest(
+                "alex@gmail.com",
+                "Qwerty123",
+                Role.ADMIN,
+                true
+        );
+
+        when(userRepository.existsByEmail("alex@gmail.com"))
+                .thenReturn(true);
+        UserAlreadyExistsException exception = assertThrows(UserAlreadyExistsException.class, () ->
+                userService.create(request)
+        );
+
+        assertEquals(
+                "Email already exists",
+                exception.getMessage()
+        );
+
+        verify(userRepository)
+                .existsByEmail("alex@gmail.com");
+        verify(userMapper, never()).toEntity(request);
+        verify(userRepository, never()).save(any());
+    }
+
+    @Test
+    public void findById_shouldReturnUserResponse() {
+
     }
 }
