@@ -39,13 +39,21 @@ public class DoctorServiceTest {
     @Test
     void create_shouldReturnResponse_whenSpecializationExists() {
         DoctorRequest request =
-                new DoctorRequest("Alex", "Smith", 5, true, 1L);
+                new DoctorRequest("Alex",
+                        "Smith",
+                        5,
+                        true,
+                        1L);
 
         Specialization specialization =
                 new Specialization("Cardiology");
 
         Doctor doctor =
-                new Doctor("Alex", "Smith", 5, true, specialization);
+                new Doctor("Alex",
+                        "Smith",
+                        5,
+                        true,
+                        specialization);
 
         DoctorResponse expectedResponse =
                 new DoctorResponse(
@@ -312,7 +320,7 @@ public class DoctorServiceTest {
     }
 
     @Test
-    void delete_shouldThrowException_whenDoctorDoesNotExist(){
+    void delete_shouldThrowException_whenDoctorDoesNotExist() {
         when(doctorRepository.findById(999L)).thenReturn(Optional.empty());
         DoctorNotFoundException exception = assertThrows(DoctorNotFoundException.class,
                 () -> service.delete(999L));
