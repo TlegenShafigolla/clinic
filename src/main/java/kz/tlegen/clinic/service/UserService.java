@@ -62,6 +62,19 @@ public class UserService {
     @Transactional
     public UserResponse update(Long id, UserRequest request) {
         User user = getUserByIdOrThrow(id);
+
+        boolean emailExists =
+                userRepository.existsByEmailAndIdNot(
+                        request.getEmail(),
+                        id
+                );
+
+        if (emailExists) {
+            throw new UserAlreadyExistsException(
+                    "User already exists with email: " + request.getEmail()
+            );
+        }
+
         user.update(request.getEmail(),
                 request.getPassword(),
                 request.getRole(),
