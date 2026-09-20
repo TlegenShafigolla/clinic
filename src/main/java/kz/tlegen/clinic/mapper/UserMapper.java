@@ -7,9 +7,9 @@ import org.springframework.stereotype.Component;
 
 @Component
 public class UserMapper {
-    public User toEntity(UserRequest request) {
+    public User toEntity(UserRequest request, String encodedPassword) {
         return new User(request.getEmail(),
-                request.getPassword(),
+                encodedPassword,
                 request.getRole(),
                 request.isActive());
     }

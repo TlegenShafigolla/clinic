@@ -7,6 +7,7 @@ import kz.tlegen.clinic.exception.UserAlreadyExistsException;
 import kz.tlegen.clinic.exception.UserNotFoundException;
 import kz.tlegen.clinic.mapper.UserMapper;
 import kz.tlegen.clinic.repository.UserRepository;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -16,11 +17,13 @@ import java.util.List;
 public class UserService {
     private final UserRepository userRepository;
     private final UserMapper userMapper;
+    private final PasswordEncoder passwordEncoder;
 
 
-    public UserService(UserRepository userRepository, UserMapper userMapper) {
+    public UserService(UserRepository userRepository, UserMapper userMapper, PasswordEncoder passwordEncoder) {
         this.userRepository = userRepository;
         this.userMapper = userMapper;
+        this.passwordEncoder = passwordEncoder;
     }
 
     @Transactional
@@ -28,7 +31,8 @@ public class UserService {
         if (userRepository.existsByEmail(request.getEmail())) {
             throw new UserAlreadyExistsException("User already exists with email: " + request.getEmail());
         }
-        User user = userMapper.toEntity(request);
+        String encodedPassword = passwordEncoder.encode(request.getPassword());
+        User user = userMapper.toEntity(request, encodedPassword);
         User savedUser = userRepository.save(user);
         return userMapper.toResponse(savedUser);
     }
@@ -73,9 +77,9 @@ public class UserService {
                     "User already exists with email: " + request.getEmail()
             );
         }
-
+        String encodedPassword = passwordEncoder.encode(request.getPassword());
         user.update(request.getEmail(),
-                request.getPassword(),
+                encodedPassword,
                 request.getRole(),
                 request.isActive()
         );

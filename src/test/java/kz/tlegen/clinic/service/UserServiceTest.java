@@ -13,6 +13,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.util.List;
 import java.util.Optional;
@@ -28,6 +29,9 @@ public class UserServiceTest {
     @Mock
     private UserMapper userMapper;
 
+    @Mock
+    private PasswordEncoder passwordEncoder;
+
     @InjectMocks
     private UserService userService;
 
@@ -42,7 +46,7 @@ public class UserServiceTest {
 
         User user = new User(
                 request.getEmail(),
-                request.getPassword(),
+                "encodedPassword",
                 request.getRole(),
                 request.isActive()
         );
@@ -56,7 +60,9 @@ public class UserServiceTest {
 
         when(userRepository.existsByEmail("alex@gmail.com"))
                 .thenReturn(false);
-        when(userMapper.toEntity(request))
+        when(passwordEncoder.encode("Qwerty123"))
+                .thenReturn("encodedPassword");
+        when(userMapper.toEntity(request, "encodedPassword"))
                 .thenReturn(user);
         when(userRepository.save(user))
                 .thenReturn(user);
@@ -67,10 +73,12 @@ public class UserServiceTest {
 
         assertEquals(expectedResponse.getId(), actualResponse.getId());
         assertEquals(expectedResponse.getEmail(), actualResponse.getEmail());
+        assertEquals(expectedResponse.getRole(), actualResponse.getRole());
         assertEquals(expectedResponse.isActive(), actualResponse.isActive());
 
+        verify(passwordEncoder).encode("Qwerty123");
         verify(userRepository).existsByEmail("alex@gmail.com");
-        verify(userMapper).toEntity(request);
+        verify(userMapper).toEntity(request, "encodedPassword");
         verify(userRepository).save(user);
         verify(userMapper).toResponse(user);
     }
@@ -97,7 +105,8 @@ public class UserServiceTest {
 
         verify(userRepository)
                 .existsByEmail("alex@gmail.com");
-        verify(userMapper, never()).toEntity(request);
+        verify(passwordEncoder, never()).encode(anyString());
+        verify(userMapper, never()).toEntity(any(UserRequest.class), anyString());
         verify(userRepository, never()).save(any());
     }
 
@@ -190,7 +199,7 @@ public class UserServiceTest {
 
         User oldUser = new User(
                 "alex@gmail.com",
-                "Qwerty123",
+                "encodedPassword",
                 Role.ADMIN,
                 true
         );
@@ -206,8 +215,10 @@ public class UserServiceTest {
                 1L
         )).thenReturn(false);
         when(userRepository.save(oldUser)).thenReturn(oldUser);
+        when(passwordEncoder.encode("Qwerty123")).thenReturn("encodedPassword");
         when(userMapper.toResponse(oldUser)).thenReturn(response);
         UserResponse updatedResponse = userService.update(1L, request);
+        assertEquals("encodedPassword",oldUser.getPassword());
         assertEquals(response.getId(), updatedResponse.getId());
         assertEquals(response.getRole(), updatedResponse.getRole());
         assertEquals(response.getEmail(), updatedResponse.getEmail());
@@ -219,6 +230,7 @@ public class UserServiceTest {
         verify(userRepository)
                 .existsByEmailAndIdNot("alex@gmail.com", 1L);
         verify(userRepository).save(oldUser);
+        verify(passwordEncoder).encode("Qwerty123");
         verify(userMapper).toResponse(oldUser);
     }
 
@@ -233,7 +245,7 @@ public class UserServiceTest {
 
         User oldUser = new User(
                 "alex@gmail.com",
-                "Qwerty123",
+                "encodedPassword",
                 Role.ADMIN,
                 true
         );
@@ -250,6 +262,7 @@ public class UserServiceTest {
         verify(userRepository)
                 .existsByEmailAndIdNot("alex@gmail.com", 1L);
         verify(userRepository, never()).save(any());
+        verify(passwordEncoder,never()).encode(anyString());
         verify(userMapper, never()).toResponse(any());
     }
 
@@ -266,7 +279,8 @@ public class UserServiceTest {
         UserNotFoundException exception = assertThrows(UserNotFoundException.class, () -> userService.update(1L, request));
         assertEquals("User not found with id: 1", exception.getMessage());
         verify(userRepository).findById(1L);
-        verify(userRepository,never()).existsByEmailAndIdNot(anyString(), anyLong());
+        verify(userRepository, never()).existsByEmailAndIdNot(anyString(), anyLong());
+        verify(passwordEncoder, never()).encode(anyString());
         verify(userRepository, never()).save(any());
         verify(userMapper, never()).toResponse(any());
     }
