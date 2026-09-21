@@ -1,6 +1,7 @@
 package kz.tlegen.clinic.controller;
 
 import jakarta.validation.Valid;
+import kz.tlegen.clinic.dto.auth.LoginRequest;
 import kz.tlegen.clinic.dto.auth.RegisterRequest;
 import kz.tlegen.clinic.dto.user.UserResponse;
 import kz.tlegen.clinic.service.AuthService;
@@ -25,6 +26,13 @@ public class AuthController {
         UserResponse userResponse = authService.register(registerRequest);
         return ResponseEntity
                 .status(HttpStatus.CREATED)
+                .body(userResponse);
+    }
+    @PostMapping("/login")
+    public ResponseEntity<UserResponse> login(@Valid @RequestBody LoginRequest loginRequest) {
+        UserResponse userResponse = authService.login(loginRequest);
+        return ResponseEntity
+                .status(HttpStatus.OK)
                 .body(userResponse);
     }
 }

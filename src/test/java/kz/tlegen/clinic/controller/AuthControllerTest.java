@@ -1,8 +1,10 @@
 package kz.tlegen.clinic.controller;
 
+import kz.tlegen.clinic.dto.auth.LoginRequest;
 import kz.tlegen.clinic.dto.auth.RegisterRequest;
 import kz.tlegen.clinic.dto.user.UserResponse;
 import kz.tlegen.clinic.entity.Role;
+import kz.tlegen.clinic.exception.InvalidCredentialsException;
 import kz.tlegen.clinic.exception.UserAlreadyExistsException;
 import kz.tlegen.clinic.service.AuthService;
 import org.junit.jupiter.api.Test;
@@ -89,6 +91,69 @@ public class AuthControllerTest {
 
         verify(authService)
                 .register(any(RegisterRequest.class));
+    }
+
+    @Test
+    void login_shouldReturnOk() throws Exception {
+        UserResponse user = new UserResponse(
+                1L,
+                "alex@gmail.com",
+                Role.PATIENT,
+                true
+        );
+        when(authService.login(any(LoginRequest.class))).thenReturn(user);
+        mockMvc.perform(
+                        post("/api/auth/login")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content("""
+                                          {
+                                          "email": "alex@gmail.com",
+                                          "password": "Qwerty1234"
+                                                   }
+                                        """)
+                ).andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(1))
+                .andExpect(jsonPath("$.email").value(user.getEmail()))
+                .andExpect(jsonPath("$.role").value("PATIENT"))
+                .andExpect(jsonPath("$.active").value(true));
+        verify(authService).login(any(LoginRequest.class));
+    }
+
+    @Test
+    void login_shouldReturnUnauthorizedWhenCredentialsInvalid() throws Exception {
+        when(authService.login(any(LoginRequest.class))).thenThrow(
+                new InvalidCredentialsException("Invalid email or password")
+        );
+        mockMvc.perform(
+                        post("/api/auth/login")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content("""
+                                              {
+                                                  "email": "alex@gmail.com",
+                                                  "password": "Qwerty1234"
+                                                           }
+                                        """)
+                ).andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.status").value(401))
+                .andExpect(jsonPath("$.message").value("Invalid email or password"));
+        verify(authService).login(any(LoginRequest.class));
+    }
+
+    @Test
+    void login_shouldReturnBadRequestWhenEmailIsInvalid() throws Exception {
+        mockMvc.perform(
+                        post("/api/auth/login")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content("""
+                                        {
+                                        "email": "not-email",
+                                          "password": "Qwerty123"
+                                          }
+                                        """
+                                )
+                ).andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status").value(400));
+        verify(authService, never()).login(any());
     }
 
 }
