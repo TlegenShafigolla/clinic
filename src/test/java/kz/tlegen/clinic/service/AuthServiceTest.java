@@ -1,9 +1,11 @@
 package kz.tlegen.clinic.service;
 
+import kz.tlegen.clinic.dto.auth.LoginRequest;
 import kz.tlegen.clinic.dto.auth.RegisterRequest;
 import kz.tlegen.clinic.dto.user.UserResponse;
 import kz.tlegen.clinic.entity.Role;
 import kz.tlegen.clinic.entity.User;
+import kz.tlegen.clinic.exception.InvalidCredentialsException;
 import kz.tlegen.clinic.exception.UserAlreadyExistsException;
 import kz.tlegen.clinic.mapper.UserMapper;
 import kz.tlegen.clinic.repository.UserRepository;
@@ -14,6 +16,8 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.crypto.password.PasswordEncoder;
+
+import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
@@ -94,5 +98,94 @@ public class AuthServiceTest {
         verify(userRepository).existsByEmail(request.getEmail());
         verify(passwordEncoder, never()).encode(any());
         verify(userRepository, never()).save(any());
+    }
+
+    @Test
+    void login_shouldReturnUserResponse() {
+        LoginRequest request = new LoginRequest(
+                "alex@gmail.com",
+                "Qwerty123"
+        );
+        User user = new User(
+                "alex@gmail.com",
+                "encodedPassword",
+                Role.PATIENT,
+                true
+        );
+
+        UserResponse expectedResponse = new UserResponse(
+                1L,
+                "alex@gmail.com",
+                Role.PATIENT,
+                true
+        );
+        when(userRepository.findByEmail(request.getEmail()))
+                .thenReturn(Optional.of(user));
+        when(passwordEncoder.matches("Qwerty123", "encodedPassword"))
+                .thenReturn(true);
+        when(userMapper.toResponse(user))
+                .thenReturn(expectedResponse);
+        UserResponse response = authService.login(request);
+
+        assertEquals(1L, response.getId());
+        assertEquals("alex@gmail.com", response.getEmail());
+        assertEquals(Role.PATIENT, response.getRole());
+        assertTrue(response.isActive());
+
+        verify(userRepository)
+                .findByEmail("alex@gmail.com");
+
+        verify(passwordEncoder)
+                .matches("Qwerty123", "encodedPassword");
+
+        verify(passwordEncoder, never())
+                .encode(anyString());
+
+        verify(userMapper)
+                .toResponse(user);
+    }
+
+    @Test
+    void login_shouldThrowInvalidCredentialsWhenEmailDoesNotExist() {
+        LoginRequest request = new LoginRequest(
+                "alex@gmail.com",
+                "Qwerty123"
+        );
+
+
+        when(userRepository.findByEmail(request.getEmail()))
+                .thenReturn(Optional.empty());
+        InvalidCredentialsException exception = assertThrows(
+                InvalidCredentialsException.class,
+                () -> authService.login(request)
+        );
+        assertEquals("Invalid email or password", exception.getMessage());
+        verify(userRepository)
+                .findByEmail("alex@gmail.com");
+        verify(passwordEncoder,never()).matches(anyString(), anyString());
+        verify(userMapper, never()).toResponse(any());
+    }
+
+    @Test
+    void login_shouldThrowInvalidCredentialsWhenPasswordDoesNotMatch() {
+        LoginRequest request = new LoginRequest(
+                "alex@gmail.com",
+                "Qwerty123"
+        );
+        User user = new User(
+                "alex@gmail.com",
+                "encodedPassword",
+                Role.PATIENT,
+                true
+        );
+        when(userRepository.findByEmail(request.getEmail())).thenReturn(Optional.of(user));
+        when(passwordEncoder.matches("Qwerty123", "encodedPassword")).thenReturn(false);
+        InvalidCredentialsException exception =assertThrows(
+                InvalidCredentialsException.class,
+                () -> authService.login(request));
+        assertEquals("Invalid email or password", exception.getMessage());
+        verify(userRepository).findByEmail(request.getEmail());
+        verify(passwordEncoder).matches("Qwerty123", "encodedPassword");
+        verify(userMapper, never()).toResponse(any());
     }
 }
