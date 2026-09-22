@@ -3,7 +3,10 @@ package kz.tlegen.clinic;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 
-@SpringBootTest
+@SpringBootTest(properties = {
+		"jwt.secret=MDEyMzQ1Njc4OTAxMjM0NTY3ODkwMTIzNDU2Nzg5MDE=",
+		"jwt.expiration=86400000"
+})
 class ClinicApplicationTests {
 
 	@Test
