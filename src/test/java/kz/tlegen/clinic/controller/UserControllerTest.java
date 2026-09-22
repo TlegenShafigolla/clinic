@@ -5,9 +5,11 @@ import kz.tlegen.clinic.dto.user.UserResponse;
 import kz.tlegen.clinic.entity.Role;
 import kz.tlegen.clinic.exception.UserAlreadyExistsException;
 import kz.tlegen.clinic.exception.UserNotFoundException;
+import kz.tlegen.clinic.security.JwtAuthenticationFilter;
 import kz.tlegen.clinic.service.UserService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
@@ -23,6 +25,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest(UserController.class)
+@AutoConfigureMockMvc(addFilters = false)
 public class UserControllerTest {
 
     @Autowired
@@ -30,6 +33,9 @@ public class UserControllerTest {
 
     @MockitoBean
     private UserService userService;
+
+    @MockitoBean
+    private JwtAuthenticationFilter jwtAuthenticationFilter;
 
     @Test
     void create_shouldReturnCreatedUser() throws Exception {

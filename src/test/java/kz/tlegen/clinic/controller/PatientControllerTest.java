@@ -4,7 +4,9 @@ package kz.tlegen.clinic.controller;
 import kz.tlegen.clinic.dto.patient.PatientRequest;
 import kz.tlegen.clinic.dto.patient.PatientResponse;
 import kz.tlegen.clinic.exception.PatientNotFoundException;
+import kz.tlegen.clinic.security.JwtAuthenticationFilter;
 import kz.tlegen.clinic.service.PatientService;
+import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -24,12 +26,16 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 
 @WebMvcTest(PatientController.class)
+@AutoConfigureMockMvc(addFilters = false)
 class PatientControllerTest {
     @Autowired
     private MockMvc mockMvc;
 
     @MockitoBean
     private PatientService service;
+
+    @MockitoBean
+    private JwtAuthenticationFilter jwtAuthenticationFilter;
 
     @Test
     void create_shouldReturnCreatedPatient() throws Exception {

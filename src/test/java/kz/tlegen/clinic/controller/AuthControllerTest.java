@@ -7,9 +7,11 @@ import kz.tlegen.clinic.dto.user.UserResponse;
 import kz.tlegen.clinic.entity.Role;
 import kz.tlegen.clinic.exception.InvalidCredentialsException;
 import kz.tlegen.clinic.exception.UserAlreadyExistsException;
+import kz.tlegen.clinic.security.JwtAuthenticationFilter;
 import kz.tlegen.clinic.service.AuthService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
@@ -22,12 +24,16 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest(AuthController.class)
+@AutoConfigureMockMvc(addFilters = false)
 public class AuthControllerTest {
     @Autowired
     private MockMvc mockMvc;
 
     @MockitoBean
     private AuthService authService;
+
+    @MockitoBean
+    private JwtAuthenticationFilter jwtAuthenticationFilter;
 
     @Test
     void post_shouldRegisterUser() throws Exception {

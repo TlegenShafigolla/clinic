@@ -5,9 +5,11 @@ import kz.tlegen.clinic.dto.appointment.AppointmentResponse;
 import kz.tlegen.clinic.entity.AppointmentStatus;
 import kz.tlegen.clinic.exception.AppointmentNotFoundException;
 import kz.tlegen.clinic.exception.AppointmentTimeConflictException;
+import kz.tlegen.clinic.security.JwtAuthenticationFilter;
 import kz.tlegen.clinic.service.AppointmentService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
@@ -23,6 +25,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest(AppointmentController.class)
+@AutoConfigureMockMvc(addFilters = false)
 class AppointmentControllerTest {
 
     @Autowired
@@ -30,6 +33,9 @@ class AppointmentControllerTest {
 
     @MockitoBean
     private AppointmentService appointmentService;
+
+    @MockitoBean
+    private JwtAuthenticationFilter jwtAuthenticationFilter;
 
     @Test
     void post_shouldCreateAppointment() throws Exception {

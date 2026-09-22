@@ -4,9 +4,11 @@ import kz.tlegen.clinic.dto.doctor.DoctorRequest;
 import kz.tlegen.clinic.dto.doctor.DoctorResponse;
 import kz.tlegen.clinic.exception.DoctorNotFoundException;
 import kz.tlegen.clinic.exception.SpecializationNotFoundException;
+import kz.tlegen.clinic.security.JwtAuthenticationFilter;
 import kz.tlegen.clinic.service.DoctorService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
@@ -23,6 +25,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 
 @WebMvcTest(DoctorController.class)
+@AutoConfigureMockMvc(addFilters = false)
 class DoctorControllerTest {
 
     @Autowired
@@ -30,6 +33,9 @@ class DoctorControllerTest {
 
     @MockitoBean
     private DoctorService service;
+
+    @MockitoBean
+    private JwtAuthenticationFilter jwtAuthenticationFilter;
 
     @Test
     void create_shouldReturnCreatedDoctor() throws Exception {

@@ -4,9 +4,11 @@ import kz.tlegen.clinic.dto.specialization.SpecializationRequest;
 import kz.tlegen.clinic.dto.specialization.SpecializationResponse;
 import kz.tlegen.clinic.exception.SpecializationAlreadyExistsException;
 import kz.tlegen.clinic.exception.SpecializationNotFoundException;
+import kz.tlegen.clinic.security.JwtAuthenticationFilter;
 import kz.tlegen.clinic.service.SpecializationService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
@@ -23,6 +25,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest(SpecializationController.class)
+@AutoConfigureMockMvc(addFilters = false)
 class SpecializationControllerTest {
 
     @Autowired
@@ -30,6 +33,9 @@ class SpecializationControllerTest {
 
     @MockitoBean
     private SpecializationService service;
+
+    @MockitoBean
+    private JwtAuthenticationFilter jwtAuthenticationFilter;
 
     @Test
     void create_shouldReturn201AndResponse_whenRequestIsValid() throws Exception {
