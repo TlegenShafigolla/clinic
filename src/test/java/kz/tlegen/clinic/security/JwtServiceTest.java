@@ -5,6 +5,7 @@ import kz.tlegen.clinic.entity.User;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.when;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.springframework.test.util.ReflectionTestUtils;
@@ -53,5 +54,70 @@ class JwtServiceTest {
                 "PATIENT",
                 jwtService.extractRole(token)
         );
+    }
+
+    @Test
+    void isTokenValid_shouldReturnTrueForValidToken() {
+        User user = new User(
+                "alex@gmail.com",
+                "encodedPassword",
+                Role.PATIENT,
+                true
+        );
+
+        String token = jwtService.generateToken(user);
+
+        assertTrue(jwtService.isTokenValid(token,user));
+    }
+
+    @Test
+    void isTokenValid_shouldReturnFalseWhenUserEmailDoesNotMatch() {
+        User alex  = new User(
+                "alex@gmail.com",
+                "encodedPassword",
+                Role.PATIENT,
+                true
+        );
+
+        User maks = new User(
+                "maks@gmail.com",
+                "encodedPassword",
+                Role.PATIENT,
+                true
+        );
+        String maksToken = jwtService.generateToken(maks);
+        assertFalse(jwtService.isTokenValid(maksToken,alex ));
+    }
+
+    @Test
+    void isTokenValid_shouldReturnFalseWhenTokenExpired() {
+        User user = new User(
+                "alex@gmail.com",
+                "encodedPassword",
+                Role.PATIENT,
+                true
+        );
+
+        ReflectionTestUtils.setField(
+                jwtService,
+                "jwtExpiration",
+                -1000L
+        );
+
+        String token = jwtService.generateToken(user);
+
+        assertFalse(jwtService.isTokenValid(token, user));
+    }
+
+    @Test
+    void isTokenValid_shouldReturnFalseWhenTokenIsInvalid() {
+        User user = new User(
+                "alex@gmail.com",
+                "encodedPassword",
+                Role.PATIENT,
+                true
+        );
+        String token = jwtService.generateToken(user);
+        assertFalse(jwtService.isTokenValid(token+"c", user));
     }
 }

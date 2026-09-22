@@ -1,5 +1,6 @@
 package kz.tlegen.clinic.service;
 
+import kz.tlegen.clinic.dto.auth.AuthResponse;
 import kz.tlegen.clinic.dto.auth.LoginRequest;
 import kz.tlegen.clinic.dto.auth.RegisterRequest;
 import kz.tlegen.clinic.dto.user.UserResponse;
@@ -9,6 +10,7 @@ import kz.tlegen.clinic.exception.InvalidCredentialsException;
 import kz.tlegen.clinic.exception.UserAlreadyExistsException;
 import kz.tlegen.clinic.mapper.UserMapper;
 import kz.tlegen.clinic.repository.UserRepository;
+import kz.tlegen.clinic.security.JwtService;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -33,6 +35,9 @@ public class AuthServiceTest {
 
     @Mock
     PasswordEncoder passwordEncoder;
+
+    @Mock
+    private JwtService jwtService;
 
     @InjectMocks
     private AuthService authService;
@@ -101,7 +106,7 @@ public class AuthServiceTest {
     }
 
     @Test
-    void login_shouldReturnUserResponse() {
+    void login_shouldReturnAuthResponse() {
         LoginRequest request = new LoginRequest(
                 "alex@gmail.com",
                 "Qwerty123"
@@ -113,24 +118,16 @@ public class AuthServiceTest {
                 true
         );
 
-        UserResponse expectedResponse = new UserResponse(
-                1L,
-                "alex@gmail.com",
-                Role.PATIENT,
-                true
-        );
         when(userRepository.findByEmail(request.getEmail()))
                 .thenReturn(Optional.of(user));
         when(passwordEncoder.matches("Qwerty123", "encodedPassword"))
                 .thenReturn(true);
-        when(userMapper.toResponse(user))
-                .thenReturn(expectedResponse);
-        UserResponse response = authService.login(request);
+        when(jwtService.generateToken(user))
+                .thenReturn("jwt-token");
 
-        assertEquals(1L, response.getId());
-        assertEquals("alex@gmail.com", response.getEmail());
-        assertEquals(Role.PATIENT, response.getRole());
-        assertTrue(response.isActive());
+        AuthResponse response = authService.login(request);
+
+        assertEquals("jwt-token", response.getToken());
 
         verify(userRepository)
                 .findByEmail("alex@gmail.com");
@@ -138,11 +135,11 @@ public class AuthServiceTest {
         verify(passwordEncoder)
                 .matches("Qwerty123", "encodedPassword");
 
+        verify(jwtService)
+                .generateToken(user);
+
         verify(passwordEncoder, never())
                 .encode(anyString());
-
-        verify(userMapper)
-                .toResponse(user);
     }
 
     @Test
@@ -162,6 +159,7 @@ public class AuthServiceTest {
         assertEquals("Invalid email or password", exception.getMessage());
         verify(userRepository)
                 .findByEmail("alex@gmail.com");
+        verify(jwtService, never()).generateToken(any());
         verify(passwordEncoder,never()).matches(anyString(), anyString());
         verify(userMapper, never()).toResponse(any());
     }
@@ -186,6 +184,7 @@ public class AuthServiceTest {
         assertEquals("Invalid email or password", exception.getMessage());
         verify(userRepository).findByEmail(request.getEmail());
         verify(passwordEncoder).matches("Qwerty123", "encodedPassword");
+        verify(jwtService, never()).generateToken(any());
         verify(userMapper, never()).toResponse(any());
     }
 }

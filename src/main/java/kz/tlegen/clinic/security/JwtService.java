@@ -1,6 +1,7 @@
 package kz.tlegen.clinic.security;
 
 import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
@@ -57,7 +58,12 @@ public class JwtService {
     }
 
     public boolean isTokenValid(String token, User user) {
-        String email = extractEmail(token);
-        return email.equals(user.getEmail()) && !isTokenExpired(token);
+        try {
+            String email = extractEmail(token);
+
+            return email.equals(user.getEmail());
+        } catch (JwtException | IllegalArgumentException exception) {
+            return false;
+        }
     }
 }

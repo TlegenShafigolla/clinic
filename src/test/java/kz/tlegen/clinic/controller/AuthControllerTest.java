@@ -1,5 +1,6 @@
 package kz.tlegen.clinic.controller;
 
+import kz.tlegen.clinic.dto.auth.AuthResponse;
 import kz.tlegen.clinic.dto.auth.LoginRequest;
 import kz.tlegen.clinic.dto.auth.RegisterRequest;
 import kz.tlegen.clinic.dto.user.UserResponse;
@@ -95,13 +96,10 @@ public class AuthControllerTest {
 
     @Test
     void login_shouldReturnOk() throws Exception {
-        UserResponse user = new UserResponse(
-                1L,
-                "alex@gmail.com",
-                Role.PATIENT,
-                true
+        AuthResponse authResponse = new AuthResponse(
+                "jwt-token"
         );
-        when(authService.login(any(LoginRequest.class))).thenReturn(user);
+        when(authService.login(any(LoginRequest.class))).thenReturn(authResponse);
         mockMvc.perform(
                         post("/api/auth/login")
                                 .contentType(MediaType.APPLICATION_JSON)
@@ -112,10 +110,7 @@ public class AuthControllerTest {
                                                    }
                                         """)
                 ).andExpect(status().isOk())
-                .andExpect(jsonPath("$.id").value(1))
-                .andExpect(jsonPath("$.email").value(user.getEmail()))
-                .andExpect(jsonPath("$.role").value("PATIENT"))
-                .andExpect(jsonPath("$.active").value(true));
+                .andExpect(jsonPath("$.token").value("jwt-token"));
         verify(authService).login(any(LoginRequest.class));
     }
 
