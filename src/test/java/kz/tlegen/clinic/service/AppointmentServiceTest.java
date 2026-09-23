@@ -11,11 +11,14 @@ import kz.tlegen.clinic.mapper.AppointmentMapper;
 import kz.tlegen.clinic.repository.AppointmentRepository;
 import kz.tlegen.clinic.repository.DoctorRepository;
 import kz.tlegen.clinic.repository.PatientRepository;
+import kz.tlegen.clinic.security.CurrentUserService;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -36,6 +39,9 @@ public class AppointmentServiceTest {
 
     @Mock
     private AppointmentMapper appointmentMapper;
+
+    @Mock
+    private CurrentUserService currentUserService;
 
     @InjectMocks
     private AppointmentService appointmentService;
@@ -523,17 +529,193 @@ public class AppointmentServiceTest {
     }
 
     @Test
-    void delete_shouldDeleteAppointment() {
-        AppointmentRequest request = new AppointmentRequest(1L,
+    void delete_shouldDeleteAppointment_whenUserIsAdmin() {
+        AppointmentRequest request = new AppointmentRequest(
+                1L,
                 1L,
                 LocalDate.of(2026, 9, 20).atStartOfDay(),
                 AppointmentStatus.SCHEDULED,
-                "Consultation");
+                "Consultation"
+        );
+
         Appointment appointment = getAppointment(request);
+
+        User admin = new User(
+                "admin@gmail.com",
+                "encodedPassword",
+                Role.ADMIN,
+                true
+        );
+
         when(appointmentRepository.findById(10L)).thenReturn(Optional.of(appointment));
+        when(currentUserService.getCurrentUser()).thenReturn(admin);
+        appointmentService.delete(10L);
+        verify(appointmentRepository).delete(appointment);
+    }
+
+    @Test
+    void delete_shouldDeleteAppointment_whenPatientOwnsAppointment() {
+        AppointmentRequest request = new AppointmentRequest(
+                1L,
+                1L,
+                LocalDate.of(2026, 9, 20).atStartOfDay(),
+                AppointmentStatus.SCHEDULED,
+                "Consultation"
+        );
+
+        Appointment appointment = getAppointment(request);
+
+        User patientUser = new User(
+                "patient@gmail.com",
+                "encodedPassword",
+                Role.PATIENT,
+                true
+        );
+
+        ReflectionTestUtils.setField(patientUser, "id", 1L);
+        ReflectionTestUtils.setField(appointment.getPatient(), "id", 1L);
+
+        when(patientRepository.findByUserId(1L))
+                .thenReturn(Optional.of(appointment.getPatient()));
+        when(appointmentRepository.findById(10L)).thenReturn(Optional.of(appointment));
+        when(currentUserService.getCurrentUser()).thenReturn(patientUser);
+
         appointmentService.delete(10L);
         verify(appointmentRepository).findById(10L);
+        verify(currentUserService).getCurrentUser();
+        verify(patientRepository).findByUserId(1L);
         verify(appointmentRepository).delete(appointment);
+    }
+
+    @Test
+    void delete_shouldThrowAccessDeniedException_whenPatientDoesNotOwnAppointment() {
+        AppointmentRequest request = new AppointmentRequest(
+                1L,
+                1L,
+                LocalDate.of(2026, 9, 20).atStartOfDay(),
+                AppointmentStatus.SCHEDULED,
+                "Consultation"
+        );
+
+        Appointment appointment = getAppointment(request);
+
+        User patientUser = new User(
+                "patient@gmail.com",
+                "encodedPassword",
+                Role.PATIENT,
+                true
+        );
+
+        Patient currentPatient = new Patient(
+                "Maria",
+                "Own",
+                LocalDate.of(2000, 5, 10),
+                "+77001111111",
+                true
+        );
+
+
+        ReflectionTestUtils.setField(currentPatient, "id", 1L);
+        ReflectionTestUtils.setField(patientUser, "id", 1L);
+        ReflectionTestUtils.setField(appointment.getPatient(), "id", 2L);
+
+        when(patientRepository.findByUserId(1L))
+                .thenReturn(Optional.of(currentPatient));
+        when(appointmentRepository.findById(10L)).thenReturn(Optional.of(appointment));
+        when(currentUserService.getCurrentUser()).thenReturn(patientUser);
+
+        AccessDeniedException exception = assertThrows(
+                AccessDeniedException.class,
+                () -> appointmentService.delete(10L)
+        );
+
+        assertEquals("You cannot delete another patient's appointment", exception.getMessage());
+        verify(appointmentRepository).findById(10L);
+        verify(currentUserService).getCurrentUser();
+        verify(patientRepository).findByUserId(1L);
+        verify(appointmentRepository, never()).delete(any());
+
+    }
+
+    @Test
+    void delete_shouldDeleteAppointment_whenDoctorOwnsAppointment() {
+        AppointmentRequest request = new AppointmentRequest(
+                1L,
+                1L,
+                LocalDate.of(2026, 9, 20).atStartOfDay(),
+                AppointmentStatus.SCHEDULED,
+                "Consultation"
+        );
+
+        Appointment appointment = getAppointment(request);
+
+        User doctorUser = new User(
+                "doctor@gmail.com",
+                "encodedPassword",
+                Role.DOCTOR,
+                true
+        );
+
+        ReflectionTestUtils.setField(doctorUser, "id", 1L);
+        ReflectionTestUtils.setField(appointment.getDoctor(), "id", 1L);
+
+        when(doctorRepository.findByUserId(1L))
+                .thenReturn(Optional.of(appointment.getDoctor()));
+        when(appointmentRepository.findById(10L)).thenReturn(Optional.of(appointment));
+        when(currentUserService.getCurrentUser()).thenReturn(doctorUser);
+
+        appointmentService.delete(10L);
+        verify(appointmentRepository).findById(10L);
+        verify(currentUserService).getCurrentUser();
+        verify(doctorRepository).findByUserId(1L);
+        verify(appointmentRepository).delete(appointment);
+    }
+
+    @Test
+    void delete_shouldThrowAccessDeniedException_whenDoctorDoesNotOwnAppointment() {
+        AppointmentRequest request = new AppointmentRequest(
+                1L,
+                1L,
+                LocalDate.of(2026, 9, 20).atStartOfDay(),
+                AppointmentStatus.SCHEDULED,
+                "Consultation"
+        );
+
+        Appointment appointment = getAppointment(request);
+
+        User doctorUser = new User(
+                "doctor@gmail.com",
+                "encodedPassword",
+                Role.DOCTOR,
+                true
+        );
+
+        Specialization specialization =
+                new Specialization("Cardiology");
+
+        Doctor currentDoctor =
+                new Doctor("Alex", "Smith", 5, true, specialization);
+
+
+        ReflectionTestUtils.setField(currentDoctor, "id", 1L);
+        ReflectionTestUtils.setField(doctorUser, "id", 1L);
+        ReflectionTestUtils.setField(appointment.getDoctor(), "id", 2L);
+
+        when(doctorRepository.findByUserId(1L))
+                .thenReturn(Optional.of(currentDoctor));
+        when(appointmentRepository.findById(10L)).thenReturn(Optional.of(appointment));
+        when(currentUserService.getCurrentUser()).thenReturn(doctorUser);
+
+        AccessDeniedException exception = assertThrows(
+                AccessDeniedException.class,
+                () -> appointmentService.delete(10L)
+        );
+
+        assertEquals("You cannot delete another doctor's appointment", exception.getMessage());
+        verify(appointmentRepository).findById(10L);
+        verify(currentUserService).getCurrentUser();
+        verify(doctorRepository).findByUserId(1L);
+        verify(appointmentRepository, never()).delete(any());
     }
 
     @Test
