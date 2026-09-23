@@ -8,6 +8,10 @@ import java.time.LocalDate;
 @Table(name = "patients")
 public class Patient {
 
+    @OneToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id", unique = true)
+    private User user;
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -41,6 +45,12 @@ public class Patient {
         this.birthDate = birthDate;
         this.phone = phone;
         this.active = active;
+    }
+
+    public User getUser() { return user; }
+
+    public void linkUser(User user) {
+        this.user = user;
     }
 
     public Long getId() {

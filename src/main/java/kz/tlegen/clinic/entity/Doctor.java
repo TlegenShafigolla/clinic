@@ -1,18 +1,15 @@
 package kz.tlegen.clinic.entity;
 
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
 
 @Entity
 @Table(name = "doctors")
 public class Doctor {
+
+    @OneToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id", unique = true)
+    private User user;
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -45,6 +42,14 @@ public class Doctor {
         this.experienceYears = experienceYears;
         this.active = active;
         this.specialization = specialization;
+    }
+
+    public User getUser() {
+        return user;
+    }
+
+    public void linkUser(User user) {
+        this.user = user;
     }
 
     public Long getId() {

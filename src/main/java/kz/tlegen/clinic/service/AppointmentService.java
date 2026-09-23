@@ -2,9 +2,7 @@ package kz.tlegen.clinic.service;
 
 import kz.tlegen.clinic.dto.appointment.AppointmentRequest;
 import kz.tlegen.clinic.dto.appointment.AppointmentResponse;
-import kz.tlegen.clinic.entity.Appointment;
-import kz.tlegen.clinic.entity.Doctor;
-import kz.tlegen.clinic.entity.Patient;
+import kz.tlegen.clinic.entity.*;
 import kz.tlegen.clinic.exception.AppointmentNotFoundException;
 import kz.tlegen.clinic.exception.AppointmentTimeConflictException;
 import kz.tlegen.clinic.exception.DoctorNotFoundException;
@@ -13,6 +11,8 @@ import kz.tlegen.clinic.mapper.AppointmentMapper;
 import kz.tlegen.clinic.repository.AppointmentRepository;
 import kz.tlegen.clinic.repository.DoctorRepository;
 import kz.tlegen.clinic.repository.PatientRepository;
+import kz.tlegen.clinic.security.CurrentUserService;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -25,17 +25,20 @@ public class AppointmentService {
     private final DoctorRepository doctorRepository;
     private final PatientRepository patientRepository;
     private final AppointmentMapper mapper;
+    private final CurrentUserService currentUserService;
 
     public AppointmentService(
             AppointmentRepository appointmentRepository,
             DoctorRepository doctorRepository,
             PatientRepository patientRepository,
-            AppointmentMapper mapper
+            AppointmentMapper mapper,
+            CurrentUserService currentUserService
     ) {
         this.appointmentRepository = appointmentRepository;
         this.doctorRepository = doctorRepository;
         this.patientRepository = patientRepository;
         this.mapper = mapper;
+        this.currentUserService = currentUserService;
     }
 
     @Transactional
@@ -80,7 +83,41 @@ public class AppointmentService {
     @Transactional
     public void delete(Long id) {
         Appointment appointment = getAppointmentByIdOrThrow(id);
-        appointmentRepository.delete(appointment);
+        User currentUser = currentUserService.getCurrentUser();
+        Role role = currentUser.getRole();
+        if (role == Role.ADMIN) {
+            appointmentRepository.delete(appointment);
+            return;
+        }
+        if (role == Role.PATIENT) {
+            Patient currentPatient = patientRepository.findByUserId(currentUser.getId())
+                    .orElseThrow(() ->
+                            new PatientNotFoundException(
+                                    "Patient profile not found for current user"
+                            )
+                    );
+            if (!currentPatient.getId().equals(appointment.getPatient().getId())) {
+                throw new AccessDeniedException(
+                        "You cannot delete another patient's appointment"
+                );
+            }
+            appointmentRepository.delete(appointment);
+            return;
+        }
+        if (role == Role.DOCTOR) {
+            Doctor currentDoctor = doctorRepository.findByUserId(currentUser.getId())
+                    .orElseThrow(()->
+                            new DoctorNotFoundException("Doctor not found for current user"));
+            if (!currentDoctor.getId().equals(appointment.getDoctor().getId())) {
+                throw new AccessDeniedException(
+                        "You cannot delete another doctor's appointment");
+            }
+            appointmentRepository.delete(appointment);
+            return;
+        }
+        throw new AccessDeniedException(
+                "You do not have permission to delete this appointment"
+        );
     }
 
     @Transactional
