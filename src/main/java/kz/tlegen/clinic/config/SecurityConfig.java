@@ -1,5 +1,6 @@
 package kz.tlegen.clinic.config;
 
+import jakarta.servlet.http.HttpServletResponse;
 import kz.tlegen.clinic.security.JwtAuthenticationFilter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -24,6 +25,12 @@ public class SecurityConfig {
         http.csrf(csrf -> csrf.disable());
         http.sessionManagement(session ->
                 session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
+        );
+        http.exceptionHandling(exception ->
+                exception.authenticationEntryPoint(
+                        (request, response, authException) ->
+                                response.sendError(HttpServletResponse.SC_UNAUTHORIZED)
+                )
         );
         http.authorizeHttpRequests(
                 authorize -> authorize
