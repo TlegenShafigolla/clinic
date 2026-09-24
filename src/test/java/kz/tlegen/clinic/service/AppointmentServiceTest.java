@@ -49,6 +49,12 @@ public class AppointmentServiceTest {
 
     @Test
     void create_shouldReturnAppointmentResponse() {
+        User admin = new User(
+                "admin@gmail.com",
+                "encodedPassword",
+                Role.ADMIN,
+                true
+        );
 
         AppointmentRequest request = new AppointmentRequest(1L, 1L,
                 LocalDate.of(2026, 9, 20).atStartOfDay(),
@@ -86,12 +92,9 @@ public class AppointmentServiceTest {
                 request.getAppointmentDateTime(),
                 AppointmentStatus.SCHEDULED,
                 "Consultation");
-
+        when(currentUserService.getCurrentUser()).thenReturn(admin);
         when(doctorRepository.findById(1L)).thenReturn(Optional.of(doctor));
-
         when(patientRepository.findById(1L)).thenReturn(Optional.of(patient));
-
-
         when(appointmentMapper.toEntity(request, doctor, patient)).thenReturn(appointment);
         when(appointmentRepository.save(appointment)).thenReturn(appointment);
         when(appointmentMapper.toResponse(appointment)).thenReturn(expectedResponse);
@@ -112,14 +115,18 @@ public class AppointmentServiceTest {
 
     @Test
     void create_shouldThrowDoctorNotFoundException() {
+        User admin = new User(
+                "admin@gmail.com",
+                "encodedPassword",
+                Role.ADMIN,
+                true
+        );
         AppointmentRequest request = new AppointmentRequest(999L, 1L,
                 LocalDate.of(2026, 9, 20).atStartOfDay(),
                 AppointmentStatus.SCHEDULED,
                 "Consultation");
-
-
+        when(currentUserService.getCurrentUser()).thenReturn(admin);
         when(doctorRepository.findById(999L)).thenReturn(Optional.empty());
-
         DoctorNotFoundException exception =
                 assertThrows(DoctorNotFoundException.class,
                         () -> appointmentService.create(request)
@@ -135,6 +142,12 @@ public class AppointmentServiceTest {
 
     @Test
     void create_shouldThrowPatientNotFoundException() {
+        User admin = new User(
+                "admin@gmail.com",
+                "encodedPassword",
+                Role.ADMIN,
+                true
+        );
         AppointmentRequest request = new AppointmentRequest(1L, 999L,
                 LocalDate.of(2026, 9, 20).atStartOfDay(),
                 AppointmentStatus.SCHEDULED,
@@ -149,7 +162,7 @@ public class AppointmentServiceTest {
                 true,
                 specialization
         );
-
+        when(currentUserService.getCurrentUser()).thenReturn(admin);
         when(doctorRepository.findById(1L)).thenReturn(Optional.of(doctor));
         when(patientRepository.findById(999L)).thenReturn(Optional.empty());
 
@@ -167,6 +180,12 @@ public class AppointmentServiceTest {
 
     @Test
     void create_shouldThrowAppointmentTimeConflictException() {
+        User admin = new User(
+                "admin@gmail.com",
+                "encodedPassword",
+                Role.ADMIN,
+                true
+        );
 
         AppointmentRequest request = new AppointmentRequest(1L, 1L,
                 LocalDate.of(2026, 9, 20).atStartOfDay(),
@@ -188,6 +207,7 @@ public class AppointmentServiceTest {
                         true
                 );
 
+        when(currentUserService.getCurrentUser()).thenReturn(admin);
         when(doctorRepository.findById(1L)).thenReturn(Optional.of(doctor));
         when(patientRepository.findById(1L)).thenReturn(Optional.of(patient));
         when(appointmentRepository.existsByDoctorIdAndAppointmentDateTime(
@@ -218,6 +238,226 @@ public class AppointmentServiceTest {
         verify(appointmentRepository, never()).save(any());
 
     }
+
+    @Test
+    void create_shouldCreateAppointment_whenPatientCreatesForSelf() {
+        User patientUser = new User(
+                "patient@gmail.com",
+                "encodedPassword",
+                Role.PATIENT,
+                true
+        );
+        AppointmentRequest request = new AppointmentRequest(
+                1L,
+                1L,
+                LocalDate.of(2026, 9, 20).atStartOfDay(),
+                AppointmentStatus.SCHEDULED,
+                "Consultation"
+        );
+
+        AppointmentResponse expectedResponse = new AppointmentResponse(
+                10L,
+                1L,
+                "Alex",
+                "Smith",
+                1L,
+                "Maria",
+                "Manas",
+                request.getAppointmentDateTime(),
+                request.getStatus(),
+                request.getReason()
+        );
+        Patient currentPatient = new Patient(
+                "Maria",
+                "Own",
+                LocalDate.of(2000, 5, 10),
+                "+77001111111",
+                true
+        );
+
+        Appointment appointment = getAppointment(request);
+        ReflectionTestUtils.setField(patientUser, "id", 1L);
+        ReflectionTestUtils.setField(currentPatient, "id", 1L);
+
+        when(currentUserService.getCurrentUser()).thenReturn(patientUser);
+        when(patientRepository.findByUserId(1L)).thenReturn(Optional.of(currentPatient));
+        when(doctorRepository.findById(request.getDoctorId())).thenReturn(Optional.of(appointment.getDoctor()));
+        when(patientRepository.findById(request.getPatientId())).thenReturn(Optional.of(currentPatient));
+        when(appointmentMapper.toEntity(request, appointment.getDoctor(), currentPatient)).thenReturn(appointment);
+        when(appointmentRepository.save(appointment)).thenReturn(appointment);
+        when(appointmentMapper.toResponse(appointment)).thenReturn(expectedResponse);
+        AppointmentResponse response = appointmentService.create(request);
+        assertEquals(expectedResponse, response);
+        verify(doctorRepository).findById(1L);
+        verify(patientRepository).findById(1L);
+        verify(patientRepository).findByUserId(1L);
+        verify(appointmentRepository).save(any(Appointment.class));
+        verify(appointmentMapper).toEntity(request, appointment.getDoctor(), currentPatient);
+        verify(appointmentMapper).toResponse(appointment);
+    }
+
+    @Test
+    void create_shouldThrowAccessDeniedException_whenPatientCreatesForAnotherPatient() {
+        User patientUser = new User(
+                "patient@gmail.com",
+                "encodedPassword",
+                Role.PATIENT,
+                true
+        );
+
+        Patient currentPatient = new Patient(
+                "Maria",
+                "Own",
+                LocalDate.of(2000, 5, 10),
+                "+77001111111",
+                true
+        );
+
+        AppointmentRequest request = new AppointmentRequest(
+                1L,
+                2L,
+                LocalDate.of(2026, 9, 20).atStartOfDay(),
+                AppointmentStatus.SCHEDULED,
+                "Consultation"
+        );
+
+        ReflectionTestUtils.setField(patientUser, "id", 1L);
+        ReflectionTestUtils.setField(currentPatient, "id", 1L);
+
+        when(currentUserService.getCurrentUser()).thenReturn(patientUser);
+        when(patientRepository.findByUserId(1L)).thenReturn(Optional.of(currentPatient));
+        AccessDeniedException exception = assertThrows(
+                AccessDeniedException.class,
+                () -> appointmentService.create(request)
+        );
+        assertEquals("Patient cannot create appointment for another patient", exception.getMessage());
+        verify(doctorRepository, never()).findById(any());
+        verify(patientRepository, never()).findById(any());
+        verify(appointmentRepository, never()).save(any());
+        verify(currentUserService).getCurrentUser();
+        verify(patientRepository).findByUserId(1L);
+    }
+
+    @Test
+    void create_shouldCreateAppointment_whenDoctorCreatesForSelf() {
+        User doctorUser = new User(
+                "doctor@gmail.com",
+                "encodedPassword",
+                Role.DOCTOR,
+                true
+        );
+        AppointmentRequest request = new AppointmentRequest(
+                1L,
+                1L,
+                LocalDate.of(2026, 9, 20).atStartOfDay(),
+                AppointmentStatus.SCHEDULED,
+                "Consultation"
+        );
+
+        AppointmentResponse expectedResponse = new AppointmentResponse(
+                10L,
+                1L,
+                "Alex",
+                "Smith",
+                1L,
+                "Maria",
+                "Manas",
+                request.getAppointmentDateTime(),
+                request.getStatus(),
+                request.getReason()
+        );
+        Patient patient = new Patient(
+                "Maria",
+                "Own",
+                LocalDate.of(2000, 5, 10),
+                "+77001111111",
+                true
+        );
+        Specialization specialization = new Specialization("Cardiology");
+        Doctor currentDoctor = new Doctor(
+                "Alex",
+                "Smith",
+                5,
+                true,
+                specialization
+        );
+
+        Appointment appointment = getAppointment(request);
+        ReflectionTestUtils.setField(doctorUser, "id", 1L);
+        ReflectionTestUtils.setField(currentDoctor, "id", 1L);
+
+        when(currentUserService.getCurrentUser())
+                .thenReturn(doctorUser);
+        when(doctorRepository.findByUserId(1L))
+                .thenReturn(Optional.of(currentDoctor));
+        when(doctorRepository.findById(1L))
+                .thenReturn(Optional.of(currentDoctor));
+        when(patientRepository.findById(1L))
+                .thenReturn(Optional.of(patient));
+        when(appointmentMapper.toEntity(
+                request,
+                currentDoctor,
+                patient
+        )).thenReturn(appointment);
+        when(appointmentRepository.save(appointment)).thenReturn(appointment);
+        when(appointmentMapper.toResponse(appointment)).thenReturn(expectedResponse);
+        AppointmentResponse response = appointmentService.create(request);
+        assertEquals(expectedResponse, response);
+        verify(doctorRepository).findById(1L);
+        verify(patientRepository).findById(1L);
+        verify(doctorRepository).findByUserId(1L);
+        verify(appointmentMapper).toEntity(request, currentDoctor, patient);
+        verify(appointmentMapper).toResponse(appointment);
+        verify(appointmentRepository).save(appointment);
+        verify(appointmentRepository).existsByDoctorIdAndAppointmentDateTime(
+                        1L,
+                        request.getAppointmentDateTime()
+                );
+    }
+
+    @Test
+    void create_shouldThrowAccessDeniedException_whenDoctorCreatesForAnotherDoctor() {
+        User doctorUser = new User(
+                "doctor@gmail.com",
+                "encodedPassword",
+                Role.DOCTOR,
+                true
+        );
+        Doctor currentDoctor = new Doctor(
+                "Alex",
+                "Smith",
+                5,
+                true,
+                new Specialization("Cardiology")
+        );
+
+        AppointmentRequest request = new AppointmentRequest(
+                2L,
+                1L,
+                LocalDate.of(2026, 9, 20).atStartOfDay(),
+                AppointmentStatus.SCHEDULED,
+                "Consultation"
+        );
+
+        ReflectionTestUtils.setField(doctorUser, "id", 1L);
+        ReflectionTestUtils.setField(currentDoctor, "id", 1L);
+
+        when(currentUserService.getCurrentUser())
+                .thenReturn(doctorUser);
+        when(doctorRepository.findByUserId(1L))
+                .thenReturn(Optional.of(currentDoctor));
+
+        AccessDeniedException exception = assertThrows(
+                AccessDeniedException.class,
+                () -> appointmentService.create(request)
+        );
+        assertEquals("Doctor cannot create appointment for another doctor", exception.getMessage());
+
+        verify(doctorRepository, never()).findById(any());
+        verify(patientRepository, never()).findById(any());
+        verify(appointmentRepository, never()).save(any());
+    }
+
 
     @Test
     void findById_shouldReturnAppointmentResponse() {
