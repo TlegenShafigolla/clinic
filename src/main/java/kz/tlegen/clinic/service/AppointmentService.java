@@ -106,7 +106,7 @@ public class AppointmentService {
         }
         if (role == Role.DOCTOR) {
             Doctor currentDoctor = doctorRepository.findByUserId(currentUser.getId())
-                    .orElseThrow(()->
+                    .orElseThrow(() ->
                             new DoctorNotFoundException("Doctor not found for current user"));
             if (!currentDoctor.getId().equals(appointment.getDoctor().getId())) {
                 throw new AccessDeniedException(
@@ -124,6 +124,50 @@ public class AppointmentService {
     public AppointmentResponse update(Long id, AppointmentRequest request) {
         Appointment appointment = getAppointmentByIdOrThrow(id);
 
+        User currentUser = currentUserService.getCurrentUser();
+        Role role = currentUser.getRole();
+
+        if (role == Role.PATIENT) {
+            Patient currentPatient = patientRepository.findByUserId(currentUser.getId())
+                    .orElseThrow(() -> new PatientNotFoundException("Patient profile not found for current user"));
+            if (!currentPatient.getId().equals(appointment.getPatient().getId())) {
+                throw new AccessDeniedException("You cannot update another patient's appointment");
+            }
+
+            if (!currentPatient.getId().equals(request.getPatientId())) {
+                throw new AccessDeniedException(
+                        "Patient cannot change appointment owner"
+                );
+            }
+        }
+
+        if (role == Role.DOCTOR) {
+            Doctor currentDoctor = doctorRepository.findByUserId(currentUser.getId())
+                    .orElseThrow(() ->
+                            new DoctorNotFoundException(
+                                    "Doctor profile not found for current user"
+                            )
+                    );
+
+            if (!currentDoctor.getId().equals(appointment.getDoctor().getId())) {
+                throw new AccessDeniedException(
+                        "You cannot update another doctor's appointment"
+                );
+            }
+
+            if (!currentDoctor.getId().equals(request.getDoctorId())) {
+                throw new AccessDeniedException(
+                        "Doctor cannot change appointment owner"
+                );
+            }
+        }
+        if (role != Role.ADMIN
+                && role != Role.PATIENT
+                && role != Role.DOCTOR) {
+            throw new AccessDeniedException(
+                    "You do not have permission to update this appointment"
+            );
+        }
         Doctor doctor = doctorRepository.findById(request.getDoctorId()).orElseThrow(
                 () -> new DoctorNotFoundException("Doctor not found with id: " + request.getDoctorId())
         );
