@@ -11,6 +11,7 @@ import kz.tlegen.clinic.mapper.AppointmentMapper;
 import kz.tlegen.clinic.repository.AppointmentRepository;
 import kz.tlegen.clinic.repository.DoctorRepository;
 import kz.tlegen.clinic.repository.PatientRepository;
+import kz.tlegen.clinic.security.AppointmentAuthorizationService;
 import kz.tlegen.clinic.security.CurrentUserService;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
@@ -26,19 +27,23 @@ public class AppointmentService {
     private final PatientRepository patientRepository;
     private final AppointmentMapper mapper;
     private final CurrentUserService currentUserService;
+    private final AppointmentAuthorizationService appointmentAuthorizationService;
 
     public AppointmentService(
             AppointmentRepository appointmentRepository,
             DoctorRepository doctorRepository,
             PatientRepository patientRepository,
             AppointmentMapper mapper,
-            CurrentUserService currentUserService
+            CurrentUserService currentUserService,
+            AppointmentAuthorizationService appointmentAuthorizationService
     ) {
         this.appointmentRepository = appointmentRepository;
         this.doctorRepository = doctorRepository;
         this.patientRepository = patientRepository;
         this.mapper = mapper;
         this.currentUserService = currentUserService;
+        this.appointmentAuthorizationService = appointmentAuthorizationService;
+
     }
 
     @Transactional
@@ -47,14 +52,20 @@ public class AppointmentService {
         Role role = currentUser.getRole();
         if (role == Role.PATIENT) {
             Patient currentPatient = getCurrentPatient(currentUser);
-            validatePatientRequestOwner(currentPatient, request,
-                    "Patient cannot create appointment for another patient");
+            appointmentAuthorizationService.validatePatientRequestOwner(
+                    currentPatient,
+                    request.getPatientId(),
+                    "Patient cannot create appointment for another patient"
+            );
         }
         if (role == Role.DOCTOR) {
             Doctor currentDoctor = getCurrentDoctor(currentUser);
 
-            validateDoctorRequestOwner(currentDoctor, request,
-                    "Doctor cannot create appointment for another doctor");
+            appointmentAuthorizationService.validateDoctorRequestOwner(
+                    currentDoctor,
+                    request.getDoctorId(),
+                    "Doctor cannot create appointment for another doctor"
+            );
         }
         if (role != Role.ADMIN
                 && role != Role.PATIENT
@@ -103,13 +114,13 @@ public class AppointmentService {
         if (role == Role.PATIENT) {
             Patient currentPatient = getCurrentPatient(currentUser);
 
-            validatePatientOwnsAppointment(currentPatient, appointment,
+            appointmentAuthorizationService.validatePatientOwnsAppointment(currentPatient, appointment,
                     "You cannot view another patient's appointment");
         }
         if (role == Role.DOCTOR) {
             Doctor currentDoctor = getCurrentDoctor(currentUser);
 
-            validateDoctorOwnsAppointment(currentDoctor, appointment,
+            appointmentAuthorizationService.validateDoctorOwnsAppointment(currentDoctor, appointment,
                     "You cannot view another doctor's appointment");
         }
 
@@ -135,16 +146,21 @@ public class AppointmentService {
         }
         if (role == Role.PATIENT) {
             Patient currentPatient = getCurrentPatient(currentUser);
-            validatePatientOwnsAppointment(currentPatient, appointment,
-                    "You cannot delete another patient's appointment");
-
+            appointmentAuthorizationService.validatePatientOwnsAppointment(
+                    currentPatient,
+                    appointment,
+                    "You cannot delete another patient's appointment"
+            );
             appointmentRepository.delete(appointment);
             return;
         }
         if (role == Role.DOCTOR) {
             Doctor currentDoctor = getCurrentDoctor(currentUser);
-            validateDoctorOwnsAppointment(currentDoctor, appointment,
-                    "You cannot delete another doctor's appointment");
+            appointmentAuthorizationService.validateDoctorOwnsAppointment(
+                    currentDoctor,
+                    appointment,
+                    "You cannot delete another doctor's appointment"
+            );
             appointmentRepository.delete(appointment);
             return;
         }
@@ -162,18 +178,32 @@ public class AppointmentService {
 
         if (role == Role.PATIENT) {
             Patient currentPatient = getCurrentPatient(currentUser);
-            validatePatientOwnsAppointment(currentPatient, appointment,
-                    "You cannot update another patient's appointment");
-            validatePatientRequestOwner(currentPatient, request,
-                    "Patient cannot change appointment owner");
+            appointmentAuthorizationService.validatePatientOwnsAppointment(
+                    currentPatient,
+                    appointment,
+                    "You cannot update another patient's appointment"
+            );
+
+            appointmentAuthorizationService.validatePatientRequestOwner(
+                    currentPatient,
+                    request.getPatientId(),
+                    "Patient cannot change appointment owner"
+            );
         }
 
         if (role == Role.DOCTOR) {
             Doctor currentDoctor = getCurrentDoctor(currentUser);
-            validateDoctorOwnsAppointment(currentDoctor, appointment,
-                    "You cannot update another doctor's appointment");
-            validateDoctorRequestOwner(currentDoctor, request,
-                    "Doctor cannot change appointment owner");
+            appointmentAuthorizationService.validateDoctorOwnsAppointment(
+                    currentDoctor,
+                    appointment,
+                    "You cannot update another doctor's appointment"
+            );
+
+            appointmentAuthorizationService.validateDoctorRequestOwner(
+                    currentDoctor,
+                    request.getDoctorId(),
+                    "Doctor cannot change appointment owner"
+            );
         }
         if (role != Role.ADMIN
                 && role != Role.PATIENT

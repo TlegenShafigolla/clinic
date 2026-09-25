@@ -11,6 +11,7 @@ import kz.tlegen.clinic.mapper.AppointmentMapper;
 import kz.tlegen.clinic.repository.AppointmentRepository;
 import kz.tlegen.clinic.repository.DoctorRepository;
 import kz.tlegen.clinic.repository.PatientRepository;
+import kz.tlegen.clinic.security.AppointmentAuthorizationService;
 import kz.tlegen.clinic.security.CurrentUserService;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -42,6 +43,9 @@ public class AppointmentServiceTest {
 
     @Mock
     private CurrentUserService currentUserService;
+
+    @Mock
+    private AppointmentAuthorizationService appointmentAuthorizationService;
 
     @InjectMocks
     private AppointmentService appointmentService;
@@ -326,6 +330,15 @@ public class AppointmentServiceTest {
 
         when(currentUserService.getCurrentUser()).thenReturn(patientUser);
         when(patientRepository.findByUserId(1L)).thenReturn(Optional.of(currentPatient));
+        doThrow(new AccessDeniedException(
+                "Patient cannot create appointment for another patient"
+        )).when(appointmentAuthorizationService)
+                .validatePatientRequestOwner(
+                        currentPatient,
+                        2L,
+                        "Patient cannot create appointment for another patient"
+                );
+
         AccessDeniedException exception = assertThrows(
                 AccessDeniedException.class,
                 () -> appointmentService.create(request)
@@ -336,6 +349,11 @@ public class AppointmentServiceTest {
         verify(appointmentRepository, never()).save(any());
         verify(currentUserService).getCurrentUser();
         verify(patientRepository).findByUserId(1L);
+        verify(appointmentAuthorizationService).validatePatientRequestOwner(
+                        currentPatient,
+                        2L,
+                        "Patient cannot create appointment for another patient"
+                );
     }
 
     @Test
@@ -446,6 +464,14 @@ public class AppointmentServiceTest {
                 .thenReturn(doctorUser);
         when(doctorRepository.findByUserId(1L))
                 .thenReturn(Optional.of(currentDoctor));
+        doThrow(new AccessDeniedException(
+                "Doctor cannot create appointment for another doctor"
+        )).when(appointmentAuthorizationService)
+                .validateDoctorRequestOwner(
+                        currentDoctor,
+                        2L,
+                        "Doctor cannot create appointment for another doctor"
+                );
 
         AccessDeniedException exception = assertThrows(
                 AccessDeniedException.class,
@@ -456,6 +482,12 @@ public class AppointmentServiceTest {
         verify(doctorRepository, never()).findById(any());
         verify(patientRepository, never()).findById(any());
         verify(appointmentRepository, never()).save(any());
+        verify(appointmentAuthorizationService)
+                .validateDoctorRequestOwner(
+                        currentDoctor,
+                        2L,
+                        "Doctor cannot create appointment for another doctor"
+                );
     }
 
 
@@ -573,6 +605,14 @@ public class AppointmentServiceTest {
         when(patientRepository.findByUserId(1L)).thenReturn(Optional.of(currentPatient));
         when(appointmentRepository.findById(10L)).thenReturn(Optional.of(appointment));
         when(currentUserService.getCurrentUser()).thenReturn(patientUser);
+        doThrow(new AccessDeniedException(
+                "You cannot view another patient's appointment"
+        )).when(appointmentAuthorizationService)
+                .validatePatientOwnsAppointment(
+                        currentPatient,
+                        appointment,
+                        "You cannot view another patient's appointment"
+                );
 
         AccessDeniedException exception = assertThrows(
                 AccessDeniedException.class,
@@ -585,6 +625,10 @@ public class AppointmentServiceTest {
         verify(patientRepository).findByUserId(1L);
         verify(appointmentRepository).findById(10L);
         verify(appointmentMapper, never()).toResponse(any());
+        verify(appointmentAuthorizationService)
+                .validatePatientOwnsAppointment(currentPatient, appointment,
+                        "You cannot view another patient's appointment"
+                );
     }
 
     @Test
@@ -672,6 +716,14 @@ public class AppointmentServiceTest {
         when(appointmentRepository.findById(10L)).thenReturn(Optional.of(appointment));
         when(doctorRepository.findByUserId(1L)).thenReturn(Optional.of(currentDoctor));
         when(currentUserService.getCurrentUser()).thenReturn(doctorUser);
+        doThrow(new AccessDeniedException(
+                "You cannot view another doctor's appointment"
+        )).when(appointmentAuthorizationService)
+                .validateDoctorOwnsAppointment(
+                        currentDoctor,
+                        appointment,
+                        "You cannot view another doctor's appointment"
+                );
 
         AccessDeniedException exception = assertThrows(AccessDeniedException.class,
                 () -> appointmentService.findById(10L));
@@ -680,8 +732,13 @@ public class AppointmentServiceTest {
         verify(currentUserService).getCurrentUser();
         verify(doctorRepository).findByUserId(1L);
         verify(appointmentMapper, never()).toResponse(any());
+        verify(appointmentAuthorizationService)
+                .validateDoctorOwnsAppointment(
+                        currentDoctor,
+                        appointment,
+                        "You cannot view another doctor's appointment"
+                );
     }
-
     private static Appointment getAppointment(AppointmentRequest request) {
         Specialization specialization =
                 new Specialization("Cardiology");
@@ -1083,6 +1140,14 @@ public class AppointmentServiceTest {
                 .thenReturn(Optional.of(currentPatient));
         when(appointmentRepository.findById(10L)).thenReturn(Optional.of(appointment));
         when(currentUserService.getCurrentUser()).thenReturn(patientUser);
+        doThrow(new AccessDeniedException(
+                "You cannot update another patient's appointment"
+        )).when(appointmentAuthorizationService)
+                .validatePatientOwnsAppointment(
+                        currentPatient,
+                        appointment,
+                        "You cannot update another patient's appointment"
+                );
         AccessDeniedException exception = assertThrows(
                 AccessDeniedException.class,
                 () -> appointmentService.update(10L, request)
@@ -1097,7 +1162,12 @@ public class AppointmentServiceTest {
         verify(doctorRepository, never()).findById(any());
         verify(patientRepository, never()).findById(any());
         verify(appointmentRepository, never()).save(any());
-
+        verify(appointmentAuthorizationService)
+                .validatePatientOwnsAppointment(
+                        currentPatient,
+                        appointment,
+                        "You cannot update another patient's appointment"
+                );
     }
 
     @Test
@@ -1134,6 +1204,14 @@ public class AppointmentServiceTest {
                 .thenReturn(Optional.of(currentPatient));
         when(appointmentRepository.findById(10L)).thenReturn(Optional.of(appointment));
         when(currentUserService.getCurrentUser()).thenReturn(patientUser);
+        doThrow(new AccessDeniedException(
+                "Patient cannot change appointment owner"
+        )).when(appointmentAuthorizationService)
+                .validatePatientRequestOwner(
+                        currentPatient,
+                        2L,
+                        "Patient cannot change appointment owner"
+                );
         AccessDeniedException exception = assertThrows(
                 AccessDeniedException.class,
                 () -> appointmentService.update(10L, request)
@@ -1149,6 +1227,12 @@ public class AppointmentServiceTest {
         verify(doctorRepository, never()).findById(any());
         verify(patientRepository, never()).findById(any());
         verify(appointmentRepository, never()).save(any());
+        verify(appointmentAuthorizationService)
+                .validatePatientRequestOwner(
+                        currentPatient,
+                        2L,
+                        "Patient cannot change appointment owner"
+                );
     }
 
     @Test
@@ -1243,6 +1327,14 @@ public class AppointmentServiceTest {
                 .thenReturn(Optional.of(currentDoctor));
         when(appointmentRepository.findById(10L)).thenReturn(Optional.of(appointment));
         when(currentUserService.getCurrentUser()).thenReturn(doctorUser);
+        doThrow(new AccessDeniedException(
+                "You cannot update another doctor's appointment"
+        )).when(appointmentAuthorizationService)
+                .validateDoctorOwnsAppointment(
+                        currentDoctor,
+                        appointment,
+                        "You cannot update another doctor's appointment"
+                );
         AccessDeniedException exception = assertThrows(
                 AccessDeniedException.class,
                 () -> appointmentService.update(10L, request)
@@ -1257,6 +1349,12 @@ public class AppointmentServiceTest {
         verify(doctorRepository, never()).findById(any());
         verify(patientRepository, never()).findById(any());
         verify(appointmentRepository, never()).save(any());
+        verify(appointmentAuthorizationService)
+                .validateDoctorOwnsAppointment(
+                        currentDoctor,
+                        appointment,
+                        "You cannot update another doctor's appointment"
+                );
     }
 
     @Test
@@ -1292,6 +1390,14 @@ public class AppointmentServiceTest {
                 .thenReturn(Optional.of(currentDoctor));
         when(appointmentRepository.findById(10L)).thenReturn(Optional.of(appointment));
         when(currentUserService.getCurrentUser()).thenReturn(doctorUser);
+        doThrow(new AccessDeniedException(
+                "Doctor cannot change appointment owner"
+        )).when(appointmentAuthorizationService)
+                .validateDoctorRequestOwner(
+                        currentDoctor,
+                        2L,
+                        "Doctor cannot change appointment owner"
+                );
         AccessDeniedException exception = assertThrows(
                 AccessDeniedException.class,
                 () -> appointmentService.update(10L, request)
@@ -1307,6 +1413,19 @@ public class AppointmentServiceTest {
         verify(doctorRepository, never()).findById(any());
         verify(patientRepository, never()).findById(any());
         verify(appointmentRepository, never()).save(any());
+        verify(appointmentAuthorizationService)
+                .validateDoctorOwnsAppointment(
+                        currentDoctor,
+                        appointment,
+                        "You cannot update another doctor's appointment"
+                );
+
+        verify(appointmentAuthorizationService)
+                .validateDoctorRequestOwner(
+                        currentDoctor,
+                        2L,
+                        "Doctor cannot change appointment owner"
+                );
     }
 
     @Test
@@ -1404,6 +1523,14 @@ public class AppointmentServiceTest {
                 .thenReturn(Optional.of(currentPatient));
         when(appointmentRepository.findById(10L)).thenReturn(Optional.of(appointment));
         when(currentUserService.getCurrentUser()).thenReturn(patientUser);
+        doThrow(new AccessDeniedException(
+                "You cannot delete another patient's appointment"
+        )).when(appointmentAuthorizationService)
+                .validatePatientOwnsAppointment(
+                        currentPatient,
+                        appointment,
+                        "You cannot delete another patient's appointment"
+                );
 
         AccessDeniedException exception = assertThrows(
                 AccessDeniedException.class,
@@ -1415,6 +1542,12 @@ public class AppointmentServiceTest {
         verify(currentUserService).getCurrentUser();
         verify(patientRepository).findByUserId(1L);
         verify(appointmentRepository, never()).delete(any());
+        verify(appointmentAuthorizationService)
+                .validatePatientOwnsAppointment(
+                        currentPatient,
+                        appointment,
+                        "You cannot delete another patient's appointment"
+                );
 
     }
 
@@ -1486,7 +1619,14 @@ public class AppointmentServiceTest {
                 .thenReturn(Optional.of(currentDoctor));
         when(appointmentRepository.findById(10L)).thenReturn(Optional.of(appointment));
         when(currentUserService.getCurrentUser()).thenReturn(doctorUser);
-
+        doThrow(new AccessDeniedException(
+                "You cannot delete another doctor's appointment"
+        )).when(appointmentAuthorizationService)
+                .validateDoctorOwnsAppointment(
+                        currentDoctor,
+                        appointment,
+                        "You cannot delete another doctor's appointment"
+                );
         AccessDeniedException exception = assertThrows(
                 AccessDeniedException.class,
                 () -> appointmentService.delete(10L)
@@ -1497,6 +1637,12 @@ public class AppointmentServiceTest {
         verify(currentUserService).getCurrentUser();
         verify(doctorRepository).findByUserId(1L);
         verify(appointmentRepository, never()).delete(any());
+        verify(appointmentAuthorizationService)
+                .validateDoctorOwnsAppointment(
+                        currentDoctor,
+                        appointment,
+                        "You cannot delete another doctor's appointment"
+                );
     }
 
     @Test
