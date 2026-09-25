@@ -410,9 +410,9 @@ public class AppointmentServiceTest {
         verify(appointmentMapper).toResponse(appointment);
         verify(appointmentRepository).save(appointment);
         verify(appointmentRepository).existsByDoctorIdAndAppointmentDateTime(
-                        1L,
-                        request.getAppointmentDateTime()
-                );
+                1L,
+                request.getAppointmentDateTime()
+        );
     }
 
     @Test
@@ -461,6 +461,13 @@ public class AppointmentServiceTest {
 
     @Test
     void findById_shouldReturnAppointmentResponse() {
+        User admin = new User(
+                "admin@gmail.com",
+                "encodedPassword",
+                Role.ADMIN,
+                true
+        );
+
         AppointmentRequest request = new AppointmentRequest(1L, 1L,
                 LocalDate.of(2026, 9, 20).atStartOfDay(),
                 AppointmentStatus.SCHEDULED,
@@ -480,6 +487,7 @@ public class AppointmentServiceTest {
                 AppointmentStatus.SCHEDULED,
                 "Consultation");
 
+        when(currentUserService.getCurrentUser()).thenReturn(admin);
         when(appointmentRepository.findById(1L)).thenReturn(Optional.of(appointment));
         when(appointmentMapper.toResponse(appointment)).thenReturn(expectedResponse);
 
@@ -494,6 +502,184 @@ public class AppointmentServiceTest {
 
         verify(appointmentRepository).findById(1L);
         verify(appointmentMapper).toResponse(appointment);
+    }
+
+    @Test
+    void findById_shouldReturnAppointment_whenPatientOwnsAppointment() {
+        User patientUser = new User(
+                "patient@gmail.com",
+                "encodedPassword",
+                Role.PATIENT,
+                true
+        );
+        AppointmentRequest request = new AppointmentRequest(1L, 1L,
+                LocalDate.of(2026, 9, 20).atStartOfDay(),
+                AppointmentStatus.SCHEDULED,
+                "Consultation");
+        Appointment appointment = getAppointment(request);
+        AppointmentResponse expectedResponse = new AppointmentResponse(
+                10L,
+                1L,
+                "Alex",
+                "Smith",
+                1L,
+                "Maria",
+                "Manas",
+                request.getAppointmentDateTime(),
+                AppointmentStatus.SCHEDULED,
+                "Consultation");
+        ReflectionTestUtils.setField(patientUser, "id", 1L);
+        ReflectionTestUtils.setField(appointment.getPatient(), "id", 1L);
+        when(appointmentRepository.findById(10L)).thenReturn(Optional.of(appointment));
+        when(currentUserService.getCurrentUser()).thenReturn(patientUser);
+        when(patientRepository.findByUserId(1L)).thenReturn(Optional.of(appointment.getPatient()));
+        when(appointmentMapper.toResponse(appointment)).thenReturn(expectedResponse);
+
+        AppointmentResponse response = appointmentService.findById(10L);
+        assertEquals(expectedResponse.getId(), response.getId());
+        verify(patientRepository).findByUserId(1L);
+        verify(appointmentRepository).findById(10L);
+        verify(appointmentMapper).toResponse(appointment);
+    }
+
+    @Test
+    void findById_shouldThrowAccessDeniedException_whenPatientDoesNotOwnAppointment() {
+        User patientUser = new User(
+                "patient@gmail.com",
+                "encodedPassword",
+                Role.PATIENT,
+                true);
+
+        Patient currentPatient = new Patient(
+                "Maria",
+                "Own",
+                LocalDate.of(2000, 5, 10),
+                "+77001111111",
+                true
+        );
+
+        AppointmentRequest request = new AppointmentRequest(1L, 1L,
+                LocalDate.of(2026, 9, 20).atStartOfDay(),
+                AppointmentStatus.SCHEDULED,
+                "Consultation");
+
+
+        Appointment appointment = getAppointment(request);
+
+        ReflectionTestUtils.setField(currentPatient, "id", 1L);
+        ReflectionTestUtils.setField(appointment.getPatient(), "id", 2L);
+        ReflectionTestUtils.setField(patientUser, "id", 1L);
+
+        when(patientRepository.findByUserId(1L)).thenReturn(Optional.of(currentPatient));
+        when(appointmentRepository.findById(10L)).thenReturn(Optional.of(appointment));
+        when(currentUserService.getCurrentUser()).thenReturn(patientUser);
+
+        AccessDeniedException exception = assertThrows(
+                AccessDeniedException.class,
+                () -> appointmentService.findById(10L)
+        );
+        assertEquals(
+                "You cannot view another patient's appointment",
+                exception.getMessage()
+        );
+        verify(patientRepository).findByUserId(1L);
+        verify(appointmentRepository).findById(10L);
+        verify(appointmentMapper, never()).toResponse(any());
+    }
+
+    @Test
+    void findById_shouldReturnAppointment_whenDoctorOwnsAppointment() {
+        User doctorUser = new User(
+                "doctor@gmail.com",
+                "encodedPassword",
+                Role.DOCTOR,
+                true
+        );
+        Doctor currentDoctor = new Doctor(
+                "Alex",
+                "Smith",
+                5,
+                true,
+                new Specialization("Cardiology")
+        );
+        AppointmentRequest request = new AppointmentRequest(1L, 1L,
+                LocalDate.of(2026, 9, 20).atStartOfDay(),
+                AppointmentStatus.SCHEDULED,
+                "Consultation");
+
+        AppointmentResponse expectedResponse = new AppointmentResponse(
+                10L,
+                1L,
+                "Alex",
+                "Smith",
+                1L,
+                "Maria",
+                "Manas",
+                request.getAppointmentDateTime(),
+                AppointmentStatus.SCHEDULED,
+                "Consultation");
+
+        Appointment appointment = getAppointment(request);
+
+        ReflectionTestUtils.setField(doctorUser, "id", 1L);
+        ReflectionTestUtils.setField(currentDoctor, "id", 1L);
+        ReflectionTestUtils.setField(appointment.getDoctor(), "id", 1L);
+
+        when(appointmentRepository.findById(10L)).thenReturn(Optional.of(appointment));
+        when(currentUserService.getCurrentUser()).thenReturn(doctorUser);
+        when(doctorRepository.findByUserId(1L)).thenReturn(Optional.of(currentDoctor));
+        when(appointmentMapper.toResponse(appointment)).thenReturn(expectedResponse);
+
+        AppointmentResponse response = appointmentService.findById(10L);
+        assertEquals(expectedResponse.getId(), response.getId());
+        assertEquals(expectedResponse.getDoctorId(), response.getDoctorId());
+        assertEquals(expectedResponse.getPatientId(), response.getPatientId());
+        assertEquals(expectedResponse.getAppointmentDateTime(), response.getAppointmentDateTime());
+        assertEquals(AppointmentStatus.SCHEDULED, response.getStatus());
+
+        verify(appointmentRepository).findById(10L);
+        verify(appointmentMapper).toResponse(appointment);
+        verify(currentUserService).getCurrentUser();
+        verify(doctorRepository).findByUserId(1L);
+    }
+
+    @Test
+    void findById_shouldThrowAccessDeniedException_whenDoctorDoesNotOwnAppointment() {
+        User doctorUser = new User(
+                "doctor@gmail.com",
+                "encodedPassword",
+                Role.DOCTOR,
+                true
+        );
+        Doctor currentDoctor = new Doctor(
+                "Alex",
+                "Smith",
+                5,
+                true,
+                new Specialization("Cardiology")
+        );
+        AppointmentRequest request = new AppointmentRequest(1L, 1L,
+                LocalDate.of(2026, 9, 20).atStartOfDay(),
+                AppointmentStatus.SCHEDULED,
+                "Consultation");
+
+        Appointment appointment = getAppointment(request);
+
+        ReflectionTestUtils.setField(doctorUser, "id", 1L);
+        ReflectionTestUtils.setField(currentDoctor, "id", 1L);
+        ReflectionTestUtils.setField(appointment.getDoctor(), "id", 2L);
+
+        when(appointmentRepository.findById(10L)).thenReturn(Optional.of(appointment));
+        when(doctorRepository.findByUserId(1L)).thenReturn(Optional.of(currentDoctor));
+        when(currentUserService.getCurrentUser()).thenReturn(doctorUser);
+
+        AccessDeniedException exception = assertThrows(AccessDeniedException.class,
+                () -> appointmentService.findById(10L));
+        assertEquals("You cannot view another doctor's appointment", exception.getMessage());
+
+        verify(currentUserService).getCurrentUser();
+        verify(doctorRepository).findByUserId(1L);
+        verify(appointmentMapper, never()).toResponse(any());
     }
 
     private static Appointment getAppointment(AppointmentRequest request) {

@@ -112,6 +112,44 @@ public class AppointmentService {
     @Transactional(readOnly = true)
     public AppointmentResponse findById(Long id) {
         Appointment appointment = getAppointmentByIdOrThrow(id);
+        User currentUser = currentUserService.getCurrentUser();
+        Role role = currentUser.getRole();
+
+        if (role == Role.PATIENT) {
+            Patient currentPatient = patientRepository.findByUserId(currentUser.getId())
+                    .orElseThrow(() ->
+                            new PatientNotFoundException(
+                                    "Patient profile not found for current user"
+                            )
+                    );
+            if (!currentPatient.getId().equals(appointment.getPatient().getId())) {
+                throw new AccessDeniedException(
+                        "You cannot view another patient's appointment"
+                );
+            }
+        }
+        if (role == Role.DOCTOR) {
+            Doctor currentDoctor = doctorRepository.findByUserId(currentUser.getId())
+                    .orElseThrow(() ->
+                            new DoctorNotFoundException(
+                                    "Doctor profile not found for current user"
+                            )
+                    );
+            if (!currentDoctor.getId().equals(appointment.getDoctor().getId())) {
+                throw new AccessDeniedException(
+                        "You cannot view another doctor's appointment"
+                );
+            }
+        }
+
+        if (role != Role.ADMIN
+                && role != Role.PATIENT
+                && role != Role.DOCTOR) {
+            throw new AccessDeniedException(
+                    "You do not have permission to view this appointment"
+            );
+        }
+
         return mapper.toResponse(appointment);
     }
 
