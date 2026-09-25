@@ -46,30 +46,15 @@ public class AppointmentService {
         User currentUser = currentUserService.getCurrentUser();
         Role role = currentUser.getRole();
         if (role == Role.PATIENT) {
-            Patient currentPatient = patientRepository.findByUserId(currentUser.getId())
-                    .orElseThrow(() ->
-                            new PatientNotFoundException(
-                                    "Patient profile not found for current user"
-                            )
-                    );
-            if (!currentPatient.getId().equals(request.getPatientId())) {
-                throw new AccessDeniedException(
-                        "Patient cannot create appointment for another patient"
-                );
-            }
+            Patient currentPatient = getCurrentPatient(currentUser);
+            validatePatientRequestOwner(currentPatient, request,
+                    "Patient cannot create appointment for another patient");
         }
         if (role == Role.DOCTOR) {
-            Doctor currentDoctor = doctorRepository.findByUserId(currentUser.getId())
-                    .orElseThrow(() ->
-                            new DoctorNotFoundException(
-                                    "Doctor profile not found for current user"
-                            )
-                    );
-            if (!currentDoctor.getId().equals(request.getDoctorId())) {
-                throw new AccessDeniedException(
-                        "Doctor cannot create appointment for another doctor"
-                );
-            }
+            Doctor currentDoctor = getCurrentDoctor(currentUser);
+
+            validateDoctorRequestOwner(currentDoctor, request,
+                    "Doctor cannot create appointment for another doctor");
         }
         if (role != Role.ADMIN
                 && role != Role.PATIENT
@@ -116,30 +101,16 @@ public class AppointmentService {
         Role role = currentUser.getRole();
 
         if (role == Role.PATIENT) {
-            Patient currentPatient = patientRepository.findByUserId(currentUser.getId())
-                    .orElseThrow(() ->
-                            new PatientNotFoundException(
-                                    "Patient profile not found for current user"
-                            )
-                    );
-            if (!currentPatient.getId().equals(appointment.getPatient().getId())) {
-                throw new AccessDeniedException(
-                        "You cannot view another patient's appointment"
-                );
-            }
+            Patient currentPatient = getCurrentPatient(currentUser);
+
+            validatePatientOwnsAppointment(currentPatient, appointment,
+                    "You cannot view another patient's appointment");
         }
         if (role == Role.DOCTOR) {
-            Doctor currentDoctor = doctorRepository.findByUserId(currentUser.getId())
-                    .orElseThrow(() ->
-                            new DoctorNotFoundException(
-                                    "Doctor profile not found for current user"
-                            )
-                    );
-            if (!currentDoctor.getId().equals(appointment.getDoctor().getId())) {
-                throw new AccessDeniedException(
-                        "You cannot view another doctor's appointment"
-                );
-            }
+            Doctor currentDoctor = getCurrentDoctor(currentUser);
+
+            validateDoctorOwnsAppointment(currentDoctor, appointment,
+                    "You cannot view another doctor's appointment");
         }
 
         if (role != Role.ADMIN
@@ -163,28 +134,17 @@ public class AppointmentService {
             return;
         }
         if (role == Role.PATIENT) {
-            Patient currentPatient = patientRepository.findByUserId(currentUser.getId())
-                    .orElseThrow(() ->
-                            new PatientNotFoundException(
-                                    "Patient profile not found for current user"
-                            )
-                    );
-            if (!currentPatient.getId().equals(appointment.getPatient().getId())) {
-                throw new AccessDeniedException(
-                        "You cannot delete another patient's appointment"
-                );
-            }
+            Patient currentPatient = getCurrentPatient(currentUser);
+            validatePatientOwnsAppointment(currentPatient, appointment,
+                    "You cannot delete another patient's appointment");
+
             appointmentRepository.delete(appointment);
             return;
         }
         if (role == Role.DOCTOR) {
-            Doctor currentDoctor = doctorRepository.findByUserId(currentUser.getId())
-                    .orElseThrow(() ->
-                            new DoctorNotFoundException("Doctor not found for current user"));
-            if (!currentDoctor.getId().equals(appointment.getDoctor().getId())) {
-                throw new AccessDeniedException(
-                        "You cannot delete another doctor's appointment");
-            }
+            Doctor currentDoctor = getCurrentDoctor(currentUser);
+            validateDoctorOwnsAppointment(currentDoctor, appointment,
+                    "You cannot delete another doctor's appointment");
             appointmentRepository.delete(appointment);
             return;
         }
@@ -201,38 +161,19 @@ public class AppointmentService {
         Role role = currentUser.getRole();
 
         if (role == Role.PATIENT) {
-            Patient currentPatient = patientRepository.findByUserId(currentUser.getId())
-                    .orElseThrow(() -> new PatientNotFoundException("Patient profile not found for current user"));
-            if (!currentPatient.getId().equals(appointment.getPatient().getId())) {
-                throw new AccessDeniedException("You cannot update another patient's appointment");
-            }
-
-            if (!currentPatient.getId().equals(request.getPatientId())) {
-                throw new AccessDeniedException(
-                        "Patient cannot change appointment owner"
-                );
-            }
+            Patient currentPatient = getCurrentPatient(currentUser);
+            validatePatientOwnsAppointment(currentPatient, appointment,
+                    "You cannot update another patient's appointment");
+            validatePatientRequestOwner(currentPatient, request,
+                    "Patient cannot change appointment owner");
         }
 
         if (role == Role.DOCTOR) {
-            Doctor currentDoctor = doctorRepository.findByUserId(currentUser.getId())
-                    .orElseThrow(() ->
-                            new DoctorNotFoundException(
-                                    "Doctor profile not found for current user"
-                            )
-                    );
-
-            if (!currentDoctor.getId().equals(appointment.getDoctor().getId())) {
-                throw new AccessDeniedException(
-                        "You cannot update another doctor's appointment"
-                );
-            }
-
-            if (!currentDoctor.getId().equals(request.getDoctorId())) {
-                throw new AccessDeniedException(
-                        "Doctor cannot change appointment owner"
-                );
-            }
+            Doctor currentDoctor = getCurrentDoctor(currentUser);
+            validateDoctorOwnsAppointment(currentDoctor, appointment,
+                    "You cannot update another doctor's appointment");
+            validateDoctorRequestOwner(currentDoctor, request,
+                    "Doctor cannot change appointment owner");
         }
         if (role != Role.ADMIN
                 && role != Role.PATIENT
@@ -268,6 +209,64 @@ public class AppointmentService {
 
         Appointment savedAppointment = appointmentRepository.save(appointment);
         return mapper.toResponse(savedAppointment);
+    }
+
+    private Patient getCurrentPatient(User currentUser) {
+        return patientRepository.findByUserId(currentUser.getId())
+                .orElseThrow(() ->
+                        new PatientNotFoundException(
+                                "Patient profile not found for current user"
+                        )
+                );
+    }
+
+    private Doctor getCurrentDoctor(User currentUser) {
+        return doctorRepository.findByUserId(currentUser.getId())
+                .orElseThrow(() ->
+                        new DoctorNotFoundException(
+                                "Doctor profile not found for current user"
+                        )
+                );
+    }
+
+    private void validatePatientOwnsAppointment(
+            Patient currentPatient,
+            Appointment appointment,
+            String message
+    ) {
+        if (!currentPatient.getId().equals(appointment.getPatient().getId())) {
+            throw new AccessDeniedException(message);
+        }
+    }
+
+    private void validateDoctorOwnsAppointment(
+            Doctor currentDoctor,
+            Appointment appointment,
+            String message
+    ) {
+        if (!currentDoctor.getId().equals(appointment.getDoctor().getId())) {
+            throw new AccessDeniedException(message);
+        }
+    }
+
+    private void validatePatientRequestOwner(
+            Patient currentPatient,
+            AppointmentRequest request,
+            String message
+    ) {
+        if (!currentPatient.getId().equals(request.getPatientId())) {
+            throw new AccessDeniedException(message);
+        }
+    }
+
+    private void validateDoctorRequestOwner(
+            Doctor currentDoctor,
+            AppointmentRequest request,
+            String message
+    ) {
+        if (!currentDoctor.getId().equals(request.getDoctorId())) {
+            throw new AccessDeniedException(message);
+        }
     }
 
     private Appointment getAppointmentByIdOrThrow(Long id) {
