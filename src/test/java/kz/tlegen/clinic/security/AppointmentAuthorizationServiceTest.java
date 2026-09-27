@@ -179,4 +179,97 @@ public class AppointmentAuthorizationServiceTest {
                 exception.getMessage()
         );
     }
+
+    @Test
+    void validatePatientRequestOwner_shouldNotThrow_whenIdsMatch() {
+        Patient currentPatient = new Patient(
+                "Alex",
+                "Smith",
+                LocalDate.of(2000, 5, 10),
+                "+77001234567",
+                true);
+
+        ReflectionTestUtils.setField(currentPatient, "id", 1L);
+
+
+        assertDoesNotThrow(() ->
+                authorizationService.validatePatientRequestOwner(
+                        currentPatient,
+                        1L,
+                        "Patient cannot change appointment owner"
+                ));
+    }
+
+    @Test
+    void validatePatientRequestOwner_shouldThrow_whenIdsDiffer() {
+        Patient currentPatient = new Patient(
+                "Alex",
+                "Smith",
+                LocalDate.of(2000, 5, 10),
+                "+77001234567",
+                true);
+
+        ReflectionTestUtils.setField(currentPatient, "id", 1L);
+
+
+        AccessDeniedException exception = assertThrows(
+                AccessDeniedException.class,
+                () -> authorizationService.validatePatientRequestOwner(
+                        currentPatient,
+                        2L,
+                        "Patient cannot change appointment owner"
+                )
+        );
+
+        assertEquals(
+                "Patient cannot change appointment owner",
+                exception.getMessage()
+        );
+    }
+
+    @Test
+    void validateDoctorRequestOwner_shouldNotThrow_whenIdsMatch() {
+        Specialization specialization =
+                new Specialization("Cardiology");
+
+        Doctor currentDoctor =
+                new Doctor("Alex",
+                        "Smith",
+                        5,
+                        true,
+                        specialization);
+
+        ReflectionTestUtils.setField(currentDoctor, "id", 1L);
+        assertDoesNotThrow(() ->
+                authorizationService.validateDoctorRequestOwner(
+                        currentDoctor,
+                        1L,
+                        "Doctor cannot change appointment owner"
+                ));
+    }
+
+    @Test
+    void validateDoctorRequestOwner_shouldThrow_whenIdsDiffer() {
+        Specialization specialization =
+                new Specialization("Cardiology");
+
+        Doctor currentDoctor = new Doctor("Alex",
+                "Smith",
+                5,
+                true,
+                specialization);
+        ReflectionTestUtils.setField(currentDoctor, "id", 1L);
+        AccessDeniedException exception = assertThrows(
+                AccessDeniedException.class,
+                () -> authorizationService.validateDoctorRequestOwner(
+                        currentDoctor,
+                        2L,
+                        "Doctor cannot change appointment owner"
+                )
+        );
+        assertEquals(
+                "Doctor cannot change appointment owner",
+                exception.getMessage()
+        );
+    }
 }

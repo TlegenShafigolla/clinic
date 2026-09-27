@@ -16,6 +16,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 
 import static org.mockito.ArgumentMatchers.any;
@@ -39,6 +40,15 @@ class AppointmentControllerTest {
 
     @Test
     void post_shouldCreateAppointment() throws Exception {
+        LocalDateTime futureDate =
+                LocalDateTime.now()
+                        .plusDays(10)
+                        .withSecond(0)
+                        .withNano(0);
+        String expectedDate = futureDate.format(
+                DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss")
+        );
+
         AppointmentResponse response = new AppointmentResponse(
                 10L,
                 1L,
@@ -47,7 +57,7 @@ class AppointmentControllerTest {
                 1L,
                 "Maria",
                 "Manas",
-                LocalDateTime.of(2026, 9, 25, 10, 0),
+                futureDate,
                 AppointmentStatus.SCHEDULED,
                 "Consultation"
         );
@@ -62,17 +72,17 @@ class AppointmentControllerTest {
                                         {
                                           "doctorId": 1,
                                           "patientId": 1,
-                                          "appointmentDateTime": "2026-09-25T10:00:00",
+                                          "appointmentDateTime": "%s",
                                           "status": "SCHEDULED",
                                           "reason": "Consultation"
                                         }
-                                        """))
+                                        """.formatted(futureDate)))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.id").value(10))
                 .andExpect(jsonPath("$.doctorId").value(1))
                 .andExpect(jsonPath("$.patientId").value(1))
                 .andExpect(jsonPath("$.status").value("SCHEDULED"))
-                .andExpect(jsonPath("$.appointmentDateTime").value("2026-09-25T10:00:00"))
+                .andExpect(jsonPath("$.appointmentDateTime").value(expectedDate))
                 .andExpect(jsonPath("$.reason").value("Consultation"));
 
         verify(appointmentService)
@@ -81,23 +91,34 @@ class AppointmentControllerTest {
 
     @Test
     void post_shouldReturnBadRequestWhenDoctorIdIsNull() throws Exception {
+        LocalDateTime futureDate =
+                LocalDateTime.now()
+                        .plusDays(10)
+                        .withSecond(0)
+                        .withNano(0);
+
         mockMvc.perform(
                 post("/api/appointments")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                     {
                                       "patientId": 1,
-                                      "appointmentDateTime": "2026-09-25T10:00:00",
+                                    "appointmentDateTime": "%s",
                                       "status": "SCHEDULED",
                                       "reason": "Consultation"
                                     }
-                                """)
+                                """.formatted(futureDate))
         ).andExpect(status().isBadRequest());
         verify(appointmentService, never()).create(any(AppointmentRequest.class));
     }
 
     @Test
     void post_shouldReturnConflictWhenDoctorTimeIsBusy() throws Exception {
+        LocalDateTime futureDate =
+                LocalDateTime.now()
+                        .plusDays(10)
+                        .withSecond(0)
+                        .withNano(0);
 
         when(appointmentService.create(any(AppointmentRequest.class)))
                 .thenThrow(
@@ -109,11 +130,11 @@ class AppointmentControllerTest {
                                 {
                                   "doctorId": 1,
                                   "patientId": 1,
-                                  "appointmentDateTime": "2026-09-25T10:00:00",
+                                  "appointmentDateTime": "%s",
                                   "status": "SCHEDULED",
                                   "reason": "Consultation"
                                 }
-                                """)
+                                """.formatted(futureDate))
                 )
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.status").value(409))
@@ -125,6 +146,15 @@ class AppointmentControllerTest {
 
     @Test
     void getAll_shouldReturnAppointments() throws Exception {
+        LocalDateTime futureDate =
+                LocalDateTime.now()
+                        .plusDays(10)
+                        .withSecond(0)
+                        .withNano(0);
+        String expectedDate = futureDate.format(
+                DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss")
+        );
+
         AppointmentResponse firstResponse = new AppointmentResponse(
                 10L,
                 1L,
@@ -133,7 +163,7 @@ class AppointmentControllerTest {
                 1L,
                 "Maria",
                 "Manas",
-                LocalDateTime.of(2026, 9, 25, 10, 0),
+                futureDate,
                 AppointmentStatus.SCHEDULED,
                 "Consultation"
         );
@@ -145,7 +175,7 @@ class AppointmentControllerTest {
                 1L,
                 "Maria",
                 "Manas",
-                LocalDateTime.of(2026, 9, 14, 10, 0),
+                futureDate,
                 AppointmentStatus.COMPLETED,
                 "Checking"
         );
@@ -207,6 +237,14 @@ class AppointmentControllerTest {
 
     @Test
     void put_shouldUpdateAppointment() throws Exception {
+        LocalDateTime futureDate =
+                LocalDateTime.now()
+                        .plusDays(10)
+                        .withSecond(0)
+                        .withNano(0);
+        String expectedDate = futureDate.format(
+                DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss")
+        );
         AppointmentResponse response = new AppointmentResponse(
                 10L,
                 1L,
@@ -215,7 +253,7 @@ class AppointmentControllerTest {
                 1L,
                 "Maria",
                 "Manas",
-                LocalDateTime.of(2026, 9, 25, 10, 0),
+                futureDate,
                 AppointmentStatus.COMPLETED,
                 "Checked"
         );
@@ -231,23 +269,27 @@ class AppointmentControllerTest {
                                     {
                                      "doctorId": 1,
                                      "patientId": 1,
-                                     "appointmentDateTime": "2026-09-25T10:00:00",
-                                     "status": "COMPLETED",
-                                     "reason": "Checked"
-                                    }
-                                """)
+                                       "appointmentDateTime": "%s",
+                                  "status": "SCHEDULED",
+                                  "reason": "Consultation"
+                                }
+                                """.formatted(futureDate))
                 )
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(10))
                 .andExpect(jsonPath("$.status").value("COMPLETED"))
                 .andExpect(jsonPath("$.reason").value("Checked"))
-                .andExpect(jsonPath("$.appointmentDateTime")
-                        .value("2026-09-25T10:00:00"));
+                .andExpect(jsonPath("$.appointmentDateTime").value(expectedDate));
         verify(appointmentService).update(eq(10L), any(AppointmentRequest.class));
     }
 
     @Test
     void put_shouldReturnNotFound() throws Exception {
+        LocalDateTime futureDate =
+                LocalDateTime.now()
+                        .plusDays(10)
+                        .withSecond(0)
+                        .withNano(0);
         when(appointmentService.update(
                 eq(999L),
                 any(AppointmentRequest.class)))
@@ -260,11 +302,11 @@ class AppointmentControllerTest {
                                     {
                                      "doctorId": 1,
                                      "patientId": 1,
-                                     "appointmentDateTime": "2026-09-25T10:00:00",
+                                     "appointmentDateTime": "%s",
                                      "status": "COMPLETED",
                                      "reason": "Checked"
                                     }
-                                """))
+                                """.formatted(futureDate)))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.status")
                         .value(404))
@@ -275,6 +317,11 @@ class AppointmentControllerTest {
 
     @Test
     void put_shouldReturnConflictWhenDoctorTimeIsBusy() throws Exception {
+        LocalDateTime futureDate =
+                LocalDateTime.now()
+                        .plusDays(10)
+                        .withSecond(0)
+                        .withNano(0);
         when(appointmentService.update(
                 eq(10L),
                 any(AppointmentRequest.class)
@@ -286,11 +333,11 @@ class AppointmentControllerTest {
                                     {
                                      "doctorId": 1,
                                      "patientId": 1,
-                                     "appointmentDateTime": "2026-09-25T10:00:00",
-                                     "status": "COMPLETED",
-                                     "reason": "Checked"
-                                    }
-                                """)
+                                     "appointmentDateTime": "%s",
+                                  "status": "SCHEDULED",
+                                  "reason": "Consultation"
+                                }
+                                """.formatted(futureDate))
                 ).andExpect(status().isConflict())
                 .andExpect(jsonPath("$.status").value(409))
                 .andExpect(jsonPath("$.message")

@@ -231,6 +231,11 @@ public class SecurityConfigTest {
     @Test
     @WithMockUser(username = "patient@gmail.com", roles = "PATIENT")
     void createAppointment_shouldBeAllowed_whenUserIsPatient() throws Exception {
+        LocalDateTime futureDate =
+                LocalDateTime.now()
+                        .plusDays(10)
+                        .withSecond(0)
+                        .withNano(0);
         AppointmentResponse response = new AppointmentResponse(
                 10L,
                 1L,
@@ -239,7 +244,7 @@ public class SecurityConfigTest {
                 1L,
                 "Maria",
                 "Manas",
-                LocalDateTime.of(2026, 9, 25, 10, 0),
+                futureDate,
                 AppointmentStatus.SCHEDULED,
                 "Consultation"
         );
@@ -247,17 +252,18 @@ public class SecurityConfigTest {
         when(appointmentService.create(any(AppointmentRequest.class)))
                 .thenReturn(response);
         mockMvc.perform(
-                post("/api/appointments")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("""
-                                {
-                                  "doctorId": 1,
-                                  "patientId": 1,
-                                  "appointmentDateTime": "2026-09-25T10:00:00",
-                                  "status": "SCHEDULED",
-                                  "reason": "Consultation"
-                                }
-                                """)).andExpect(status().isCreated());
+                        post("/api/appointments")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content("""
+                                        {
+                                          "doctorId": 1,
+                                          "patientId": 1,
+                                          "appointmentDateTime": "%s",
+                                          "status": "SCHEDULED",
+                                          "reason": "Consultation"
+                                        }
+                                        """.formatted(futureDate)))
+                .andExpect(status().isCreated());
         verify(appointmentService).create(any(AppointmentRequest.class));
     }
 

@@ -259,46 +259,6 @@ public class AppointmentService {
                 );
     }
 
-    private void validatePatientOwnsAppointment(
-            Patient currentPatient,
-            Appointment appointment,
-            String message
-    ) {
-        if (!currentPatient.getId().equals(appointment.getPatient().getId())) {
-            throw new AccessDeniedException(message);
-        }
-    }
-
-    private void validateDoctorOwnsAppointment(
-            Doctor currentDoctor,
-            Appointment appointment,
-            String message
-    ) {
-        if (!currentDoctor.getId().equals(appointment.getDoctor().getId())) {
-            throw new AccessDeniedException(message);
-        }
-    }
-
-    private void validatePatientRequestOwner(
-            Patient currentPatient,
-            AppointmentRequest request,
-            String message
-    ) {
-        if (!currentPatient.getId().equals(request.getPatientId())) {
-            throw new AccessDeniedException(message);
-        }
-    }
-
-    private void validateDoctorRequestOwner(
-            Doctor currentDoctor,
-            AppointmentRequest request,
-            String message
-    ) {
-        if (!currentDoctor.getId().equals(request.getDoctorId())) {
-            throw new AccessDeniedException(message);
-        }
-    }
-
     private Appointment getAppointmentByIdOrThrow(Long id) {
         return appointmentRepository.findById(id).orElseThrow(() -> new AppointmentNotFoundException(
                 "Appointment not found with id: " + id
