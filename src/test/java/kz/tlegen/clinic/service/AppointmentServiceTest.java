@@ -12,6 +12,7 @@ import kz.tlegen.clinic.repository.AppointmentRepository;
 import kz.tlegen.clinic.repository.DoctorRepository;
 import kz.tlegen.clinic.repository.PatientRepository;
 import kz.tlegen.clinic.security.AppointmentAuthorizationService;
+import kz.tlegen.clinic.security.CurrentProfileService;
 import kz.tlegen.clinic.security.CurrentUserService;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -46,6 +47,9 @@ public class AppointmentServiceTest {
 
     @Mock
     private AppointmentAuthorizationService appointmentAuthorizationService;
+
+    @Mock
+    private CurrentProfileService currentProfileService;
 
     @InjectMocks
     private AppointmentService appointmentService;
@@ -284,7 +288,7 @@ public class AppointmentServiceTest {
         ReflectionTestUtils.setField(currentPatient, "id", 1L);
 
         when(currentUserService.getCurrentUser()).thenReturn(patientUser);
-        when(patientRepository.findByUserId(1L)).thenReturn(Optional.of(currentPatient));
+        when(currentProfileService.getCurrentPatient(patientUser)).thenReturn(currentPatient);
         when(doctorRepository.findById(request.getDoctorId())).thenReturn(Optional.of(appointment.getDoctor()));
         when(patientRepository.findById(request.getPatientId())).thenReturn(Optional.of(currentPatient));
         when(appointmentMapper.toEntity(request, appointment.getDoctor(), currentPatient)).thenReturn(appointment);
@@ -294,7 +298,7 @@ public class AppointmentServiceTest {
         assertEquals(expectedResponse, response);
         verify(doctorRepository).findById(1L);
         verify(patientRepository).findById(1L);
-        verify(patientRepository).findByUserId(1L);
+        verify(currentProfileService).getCurrentPatient(patientUser);
         verify(appointmentRepository).save(any(Appointment.class));
         verify(appointmentMapper).toEntity(request, appointment.getDoctor(), currentPatient);
         verify(appointmentMapper).toResponse(appointment);
@@ -329,7 +333,7 @@ public class AppointmentServiceTest {
         ReflectionTestUtils.setField(currentPatient, "id", 1L);
 
         when(currentUserService.getCurrentUser()).thenReturn(patientUser);
-        when(patientRepository.findByUserId(1L)).thenReturn(Optional.of(currentPatient));
+        when(currentProfileService.getCurrentPatient(patientUser)).thenReturn(currentPatient);
         doThrow(new AccessDeniedException(
                 "Patient cannot create appointment for another patient"
         )).when(appointmentAuthorizationService)
@@ -348,12 +352,12 @@ public class AppointmentServiceTest {
         verify(patientRepository, never()).findById(any());
         verify(appointmentRepository, never()).save(any());
         verify(currentUserService).getCurrentUser();
-        verify(patientRepository).findByUserId(1L);
+        verify(currentProfileService).getCurrentPatient(patientUser);
         verify(appointmentAuthorizationService).validatePatientRequestOwner(
-                        currentPatient,
-                        2L,
-                        "Patient cannot create appointment for another patient"
-                );
+                currentPatient,
+                2L,
+                "Patient cannot create appointment for another patient"
+        );
     }
 
     @Test
@@ -406,8 +410,8 @@ public class AppointmentServiceTest {
 
         when(currentUserService.getCurrentUser())
                 .thenReturn(doctorUser);
-        when(doctorRepository.findByUserId(1L))
-                .thenReturn(Optional.of(currentDoctor));
+        when(currentProfileService.getCurrentDoctor(doctorUser))
+                .thenReturn(currentDoctor);
         when(doctorRepository.findById(1L))
                 .thenReturn(Optional.of(currentDoctor));
         when(patientRepository.findById(1L))
@@ -423,7 +427,7 @@ public class AppointmentServiceTest {
         assertEquals(expectedResponse, response);
         verify(doctorRepository).findById(1L);
         verify(patientRepository).findById(1L);
-        verify(doctorRepository).findByUserId(1L);
+        verify(currentProfileService).getCurrentDoctor(doctorUser);
         verify(appointmentMapper).toEntity(request, currentDoctor, patient);
         verify(appointmentMapper).toResponse(appointment);
         verify(appointmentRepository).save(appointment);
@@ -462,8 +466,7 @@ public class AppointmentServiceTest {
 
         when(currentUserService.getCurrentUser())
                 .thenReturn(doctorUser);
-        when(doctorRepository.findByUserId(1L))
-                .thenReturn(Optional.of(currentDoctor));
+        when(currentProfileService.getCurrentDoctor(doctorUser)).thenReturn(currentDoctor);
         doThrow(new AccessDeniedException(
                 "Doctor cannot create appointment for another doctor"
         )).when(appointmentAuthorizationService)
@@ -564,12 +567,12 @@ public class AppointmentServiceTest {
         ReflectionTestUtils.setField(appointment.getPatient(), "id", 1L);
         when(appointmentRepository.findById(10L)).thenReturn(Optional.of(appointment));
         when(currentUserService.getCurrentUser()).thenReturn(patientUser);
-        when(patientRepository.findByUserId(1L)).thenReturn(Optional.of(appointment.getPatient()));
+        when(currentProfileService.getCurrentPatient(patientUser)).thenReturn(appointment.getPatient());
         when(appointmentMapper.toResponse(appointment)).thenReturn(expectedResponse);
 
         AppointmentResponse response = appointmentService.findById(10L);
         assertEquals(expectedResponse.getId(), response.getId());
-        verify(patientRepository).findByUserId(1L);
+        verify(currentProfileService).getCurrentPatient(patientUser);
         verify(appointmentRepository).findById(10L);
         verify(appointmentMapper).toResponse(appointment);
     }
@@ -602,7 +605,7 @@ public class AppointmentServiceTest {
         ReflectionTestUtils.setField(appointment.getPatient(), "id", 2L);
         ReflectionTestUtils.setField(patientUser, "id", 1L);
 
-        when(patientRepository.findByUserId(1L)).thenReturn(Optional.of(currentPatient));
+        when(currentProfileService.getCurrentPatient(patientUser)).thenReturn(currentPatient);
         when(appointmentRepository.findById(10L)).thenReturn(Optional.of(appointment));
         when(currentUserService.getCurrentUser()).thenReturn(patientUser);
         doThrow(new AccessDeniedException(
@@ -622,7 +625,7 @@ public class AppointmentServiceTest {
                 "You cannot view another patient's appointment",
                 exception.getMessage()
         );
-        verify(patientRepository).findByUserId(1L);
+        verify(currentProfileService).getCurrentPatient(patientUser);
         verify(appointmentRepository).findById(10L);
         verify(appointmentMapper, never()).toResponse(any());
         verify(appointmentAuthorizationService)
@@ -671,7 +674,7 @@ public class AppointmentServiceTest {
 
         when(appointmentRepository.findById(10L)).thenReturn(Optional.of(appointment));
         when(currentUserService.getCurrentUser()).thenReturn(doctorUser);
-        when(doctorRepository.findByUserId(1L)).thenReturn(Optional.of(currentDoctor));
+        when(currentProfileService.getCurrentDoctor(doctorUser)).thenReturn(currentDoctor);
         when(appointmentMapper.toResponse(appointment)).thenReturn(expectedResponse);
 
         AppointmentResponse response = appointmentService.findById(10L);
@@ -684,7 +687,7 @@ public class AppointmentServiceTest {
         verify(appointmentRepository).findById(10L);
         verify(appointmentMapper).toResponse(appointment);
         verify(currentUserService).getCurrentUser();
-        verify(doctorRepository).findByUserId(1L);
+        verify(currentProfileService).getCurrentDoctor(doctorUser);
     }
 
     @Test
@@ -714,7 +717,7 @@ public class AppointmentServiceTest {
         ReflectionTestUtils.setField(appointment.getDoctor(), "id", 2L);
 
         when(appointmentRepository.findById(10L)).thenReturn(Optional.of(appointment));
-        when(doctorRepository.findByUserId(1L)).thenReturn(Optional.of(currentDoctor));
+        when(currentProfileService.getCurrentDoctor(doctorUser)).thenReturn(currentDoctor);
         when(currentUserService.getCurrentUser()).thenReturn(doctorUser);
         doThrow(new AccessDeniedException(
                 "You cannot view another doctor's appointment"
@@ -730,7 +733,7 @@ public class AppointmentServiceTest {
         assertEquals("You cannot view another doctor's appointment", exception.getMessage());
 
         verify(currentUserService).getCurrentUser();
-        verify(doctorRepository).findByUserId(1L);
+        verify(currentProfileService).getCurrentDoctor(doctorUser);
         verify(appointmentMapper, never()).toResponse(any());
         verify(appointmentAuthorizationService)
                 .validateDoctorOwnsAppointment(
@@ -739,6 +742,7 @@ public class AppointmentServiceTest {
                         "You cannot view another doctor's appointment"
                 );
     }
+
     private static Appointment getAppointment(AppointmentRequest request) {
         Specialization specialization =
                 new Specialization("Cardiology");
@@ -1084,7 +1088,7 @@ public class AppointmentServiceTest {
 
         when(appointmentRepository.findById(10L)).thenReturn(Optional.of(appointment));
         when(currentUserService.getCurrentUser()).thenReturn(patientUser);
-        when(patientRepository.findByUserId(1L)).thenReturn(Optional.of(appointment.getPatient()));
+        when(currentProfileService.getCurrentPatient(patientUser)).thenReturn(appointment.getPatient());
         when(doctorRepository.findById(1L)).thenReturn(Optional.of(appointment.getDoctor()));
         when(patientRepository.findById(1L)).thenReturn(Optional.of(appointment.getPatient()));
         when(appointmentRepository.save(appointment)).thenReturn(appointment);
@@ -1098,7 +1102,7 @@ public class AppointmentServiceTest {
 
         verify(appointmentRepository).findById(10L);
         verify(doctorRepository).findById(1L);
-        verify(patientRepository).findByUserId(1L);
+        verify(currentProfileService).getCurrentPatient(patientUser);
         verify(patientRepository).findById(1L);
         verify(appointmentRepository).save(appointment);
         verify(appointmentMapper).toResponse(appointment);
@@ -1136,8 +1140,7 @@ public class AppointmentServiceTest {
         ReflectionTestUtils.setField(patientUser, "id", 1L);
         ReflectionTestUtils.setField(appointment.getPatient(), "id", 2L);
 
-        when(patientRepository.findByUserId(1L))
-                .thenReturn(Optional.of(currentPatient));
+        when(currentProfileService.getCurrentPatient(patientUser)).thenReturn(currentPatient);
         when(appointmentRepository.findById(10L)).thenReturn(Optional.of(appointment));
         when(currentUserService.getCurrentUser()).thenReturn(patientUser);
         doThrow(new AccessDeniedException(
@@ -1156,7 +1159,7 @@ public class AppointmentServiceTest {
                 "You cannot update another patient's appointment",
                 exception.getMessage()
         );
-        verify(patientRepository).findByUserId(1L);
+        verify(currentProfileService).getCurrentPatient(patientUser);
         verify(appointmentRepository).findById(10L);
         verify(currentUserService).getCurrentUser();
         verify(doctorRepository, never()).findById(any());
@@ -1200,8 +1203,7 @@ public class AppointmentServiceTest {
         ReflectionTestUtils.setField(currentPatient, "id", 1L);
         ReflectionTestUtils.setField(patientUser, "id", 1L);
         ReflectionTestUtils.setField(appointment.getPatient(), "id", 1L);
-        when(patientRepository.findByUserId(1L))
-                .thenReturn(Optional.of(currentPatient));
+        when(currentProfileService.getCurrentPatient(patientUser)).thenReturn(currentPatient);
         when(appointmentRepository.findById(10L)).thenReturn(Optional.of(appointment));
         when(currentUserService.getCurrentUser()).thenReturn(patientUser);
         doThrow(new AccessDeniedException(
@@ -1221,7 +1223,7 @@ public class AppointmentServiceTest {
                 "Patient cannot change appointment owner",
                 exception.getMessage()
         );
-        verify(patientRepository).findByUserId(1L);
+        verify(currentProfileService).getCurrentPatient(patientUser);
         verify(appointmentRepository).findById(10L);
         verify(currentUserService).getCurrentUser();
         verify(doctorRepository, never()).findById(any());
@@ -1270,7 +1272,7 @@ public class AppointmentServiceTest {
 
         when(appointmentRepository.findById(10L)).thenReturn(Optional.of(appointment));
         when(currentUserService.getCurrentUser()).thenReturn(doctorUser);
-        when(doctorRepository.findByUserId(1L)).thenReturn(Optional.of(appointment.getDoctor()));
+        when(currentProfileService.getCurrentDoctor(doctorUser)).thenReturn(appointment.getDoctor());
         when(doctorRepository.findById(1L)).thenReturn(Optional.of(appointment.getDoctor()));
         when(patientRepository.findById(1L)).thenReturn(Optional.of(appointment.getPatient()));
         when(appointmentRepository.save(appointment)).thenReturn(appointment);
@@ -1284,7 +1286,7 @@ public class AppointmentServiceTest {
 
         verify(appointmentRepository).findById(10L);
         verify(doctorRepository).findById(1L);
-        verify(doctorRepository).findByUserId(1L);
+        verify(currentProfileService).getCurrentDoctor(doctorUser);
         verify(patientRepository).findById(1L);
         verify(appointmentRepository).save(appointment);
         verify(appointmentMapper).toResponse(appointment);
@@ -1323,8 +1325,7 @@ public class AppointmentServiceTest {
         ReflectionTestUtils.setField(doctorUser, "id", 1L);
         ReflectionTestUtils.setField(appointment.getDoctor(), "id", 2L);
 
-        when(doctorRepository.findByUserId(1L))
-                .thenReturn(Optional.of(currentDoctor));
+        when(currentProfileService.getCurrentDoctor(doctorUser)).thenReturn(currentDoctor);
         when(appointmentRepository.findById(10L)).thenReturn(Optional.of(appointment));
         when(currentUserService.getCurrentUser()).thenReturn(doctorUser);
         doThrow(new AccessDeniedException(
@@ -1343,7 +1344,7 @@ public class AppointmentServiceTest {
                 "You cannot update another doctor's appointment",
                 exception.getMessage()
         );
-        verify(doctorRepository).findByUserId(1L);
+        verify(currentProfileService).getCurrentDoctor(doctorUser);
         verify(appointmentRepository).findById(10L);
         verify(currentUserService).getCurrentUser();
         verify(doctorRepository, never()).findById(any());
@@ -1386,8 +1387,7 @@ public class AppointmentServiceTest {
         ReflectionTestUtils.setField(currentDoctor, "id", 1L);
         ReflectionTestUtils.setField(doctorUser, "id", 1L);
         ReflectionTestUtils.setField(appointment.getDoctor(), "id", 1L);
-        when(doctorRepository.findByUserId(1L))
-                .thenReturn(Optional.of(currentDoctor));
+        when(currentProfileService.getCurrentDoctor(doctorUser)).thenReturn(currentDoctor);
         when(appointmentRepository.findById(10L)).thenReturn(Optional.of(appointment));
         when(currentUserService.getCurrentUser()).thenReturn(doctorUser);
         doThrow(new AccessDeniedException(
@@ -1405,9 +1405,8 @@ public class AppointmentServiceTest {
 
         assertEquals(
                 "Doctor cannot change appointment owner",
-                exception.getMessage()
-        );
-        verify(doctorRepository).findByUserId(1L);
+                exception.getMessage());
+        verify(currentProfileService).getCurrentDoctor(doctorUser);
         verify(appointmentRepository).findById(10L);
         verify(currentUserService).getCurrentUser();
         verify(doctorRepository, never()).findById(any());
@@ -1475,15 +1474,14 @@ public class AppointmentServiceTest {
         ReflectionTestUtils.setField(patientUser, "id", 1L);
         ReflectionTestUtils.setField(appointment.getPatient(), "id", 1L);
 
-        when(patientRepository.findByUserId(1L))
-                .thenReturn(Optional.of(appointment.getPatient()));
+        when(currentProfileService.getCurrentPatient(patientUser)).thenReturn(appointment.getPatient());
         when(appointmentRepository.findById(10L)).thenReturn(Optional.of(appointment));
         when(currentUserService.getCurrentUser()).thenReturn(patientUser);
 
         appointmentService.delete(10L);
         verify(appointmentRepository).findById(10L);
         verify(currentUserService).getCurrentUser();
-        verify(patientRepository).findByUserId(1L);
+        verify(currentProfileService).getCurrentPatient(patientUser);
         verify(appointmentRepository).delete(appointment);
     }
 
@@ -1519,8 +1517,7 @@ public class AppointmentServiceTest {
         ReflectionTestUtils.setField(patientUser, "id", 1L);
         ReflectionTestUtils.setField(appointment.getPatient(), "id", 2L);
 
-        when(patientRepository.findByUserId(1L))
-                .thenReturn(Optional.of(currentPatient));
+        when(currentProfileService.getCurrentPatient(patientUser)).thenReturn(currentPatient);
         when(appointmentRepository.findById(10L)).thenReturn(Optional.of(appointment));
         when(currentUserService.getCurrentUser()).thenReturn(patientUser);
         doThrow(new AccessDeniedException(
@@ -1540,7 +1537,7 @@ public class AppointmentServiceTest {
         assertEquals("You cannot delete another patient's appointment", exception.getMessage());
         verify(appointmentRepository).findById(10L);
         verify(currentUserService).getCurrentUser();
-        verify(patientRepository).findByUserId(1L);
+        verify(currentProfileService).getCurrentPatient(patientUser);
         verify(appointmentRepository, never()).delete(any());
         verify(appointmentAuthorizationService)
                 .validatePatientOwnsAppointment(
@@ -1573,15 +1570,14 @@ public class AppointmentServiceTest {
         ReflectionTestUtils.setField(doctorUser, "id", 1L);
         ReflectionTestUtils.setField(appointment.getDoctor(), "id", 1L);
 
-        when(doctorRepository.findByUserId(1L))
-                .thenReturn(Optional.of(appointment.getDoctor()));
+        when(currentProfileService.getCurrentDoctor(doctorUser)).thenReturn(appointment.getDoctor());
         when(appointmentRepository.findById(10L)).thenReturn(Optional.of(appointment));
         when(currentUserService.getCurrentUser()).thenReturn(doctorUser);
 
         appointmentService.delete(10L);
         verify(appointmentRepository).findById(10L);
         verify(currentUserService).getCurrentUser();
-        verify(doctorRepository).findByUserId(1L);
+        verify(currentProfileService).getCurrentDoctor(doctorUser);
         verify(appointmentRepository).delete(appointment);
     }
 
@@ -1615,8 +1611,7 @@ public class AppointmentServiceTest {
         ReflectionTestUtils.setField(doctorUser, "id", 1L);
         ReflectionTestUtils.setField(appointment.getDoctor(), "id", 2L);
 
-        when(doctorRepository.findByUserId(1L))
-                .thenReturn(Optional.of(currentDoctor));
+        when(currentProfileService.getCurrentDoctor(doctorUser)).thenReturn(currentDoctor);
         when(appointmentRepository.findById(10L)).thenReturn(Optional.of(appointment));
         when(currentUserService.getCurrentUser()).thenReturn(doctorUser);
         doThrow(new AccessDeniedException(
@@ -1635,7 +1630,7 @@ public class AppointmentServiceTest {
         assertEquals("You cannot delete another doctor's appointment", exception.getMessage());
         verify(appointmentRepository).findById(10L);
         verify(currentUserService).getCurrentUser();
-        verify(doctorRepository).findByUserId(1L);
+        verify(currentProfileService).getCurrentDoctor(doctorUser);
         verify(appointmentRepository, never()).delete(any());
         verify(appointmentAuthorizationService)
                 .validateDoctorOwnsAppointment(

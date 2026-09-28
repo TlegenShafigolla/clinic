@@ -12,6 +12,7 @@ import kz.tlegen.clinic.repository.AppointmentRepository;
 import kz.tlegen.clinic.repository.DoctorRepository;
 import kz.tlegen.clinic.repository.PatientRepository;
 import kz.tlegen.clinic.security.AppointmentAuthorizationService;
+import kz.tlegen.clinic.security.CurrentProfileService;
 import kz.tlegen.clinic.security.CurrentUserService;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
@@ -28,6 +29,7 @@ public class AppointmentService {
     private final AppointmentMapper mapper;
     private final CurrentUserService currentUserService;
     private final AppointmentAuthorizationService appointmentAuthorizationService;
+    private final CurrentProfileService currentProfileService;
 
     public AppointmentService(
             AppointmentRepository appointmentRepository,
@@ -35,7 +37,8 @@ public class AppointmentService {
             PatientRepository patientRepository,
             AppointmentMapper mapper,
             CurrentUserService currentUserService,
-            AppointmentAuthorizationService appointmentAuthorizationService
+            AppointmentAuthorizationService appointmentAuthorizationService,
+            CurrentProfileService currentProfileService
     ) {
         this.appointmentRepository = appointmentRepository;
         this.doctorRepository = doctorRepository;
@@ -43,7 +46,7 @@ public class AppointmentService {
         this.mapper = mapper;
         this.currentUserService = currentUserService;
         this.appointmentAuthorizationService = appointmentAuthorizationService;
-
+        this.currentProfileService = currentProfileService;
     }
 
     @Transactional
@@ -51,7 +54,8 @@ public class AppointmentService {
         User currentUser = currentUserService.getCurrentUser();
         Role role = currentUser.getRole();
         if (role == Role.PATIENT) {
-            Patient currentPatient = getCurrentPatient(currentUser);
+            Patient currentPatient =
+                    currentProfileService.getCurrentPatient(currentUser);
             appointmentAuthorizationService.validatePatientRequestOwner(
                     currentPatient,
                     request.getPatientId(),
@@ -59,8 +63,8 @@ public class AppointmentService {
             );
         }
         if (role == Role.DOCTOR) {
-            Doctor currentDoctor = getCurrentDoctor(currentUser);
-
+            Doctor currentDoctor =
+                    currentProfileService.getCurrentDoctor(currentUser);
             appointmentAuthorizationService.validateDoctorRequestOwner(
                     currentDoctor,
                     request.getDoctorId(),
@@ -112,14 +116,14 @@ public class AppointmentService {
         Role role = currentUser.getRole();
 
         if (role == Role.PATIENT) {
-            Patient currentPatient = getCurrentPatient(currentUser);
-
+            Patient currentPatient =
+                    currentProfileService.getCurrentPatient(currentUser);
             appointmentAuthorizationService.validatePatientOwnsAppointment(currentPatient, appointment,
                     "You cannot view another patient's appointment");
         }
         if (role == Role.DOCTOR) {
-            Doctor currentDoctor = getCurrentDoctor(currentUser);
-
+            Doctor currentDoctor =
+                    currentProfileService.getCurrentDoctor(currentUser);
             appointmentAuthorizationService.validateDoctorOwnsAppointment(currentDoctor, appointment,
                     "You cannot view another doctor's appointment");
         }
@@ -145,7 +149,8 @@ public class AppointmentService {
             return;
         }
         if (role == Role.PATIENT) {
-            Patient currentPatient = getCurrentPatient(currentUser);
+            Patient currentPatient =
+                    currentProfileService.getCurrentPatient(currentUser);
             appointmentAuthorizationService.validatePatientOwnsAppointment(
                     currentPatient,
                     appointment,
@@ -155,7 +160,8 @@ public class AppointmentService {
             return;
         }
         if (role == Role.DOCTOR) {
-            Doctor currentDoctor = getCurrentDoctor(currentUser);
+            Doctor currentDoctor =
+                    currentProfileService.getCurrentDoctor(currentUser);
             appointmentAuthorizationService.validateDoctorOwnsAppointment(
                     currentDoctor,
                     appointment,
@@ -177,28 +183,25 @@ public class AppointmentService {
         Role role = currentUser.getRole();
 
         if (role == Role.PATIENT) {
-            Patient currentPatient = getCurrentPatient(currentUser);
+            Patient currentPatient =
+                    currentProfileService.getCurrentPatient(currentUser);
             appointmentAuthorizationService.validatePatientOwnsAppointment(
                     currentPatient,
                     appointment,
-                    "You cannot update another patient's appointment"
-            );
-
+                    "You cannot update another patient's appointment");
             appointmentAuthorizationService.validatePatientRequestOwner(
                     currentPatient,
                     request.getPatientId(),
-                    "Patient cannot change appointment owner"
-            );
+                    "Patient cannot change appointment owner");
         }
 
         if (role == Role.DOCTOR) {
-            Doctor currentDoctor = getCurrentDoctor(currentUser);
+            Doctor currentDoctor =
+                    currentProfileService.getCurrentDoctor(currentUser);
             appointmentAuthorizationService.validateDoctorOwnsAppointment(
                     currentDoctor,
                     appointment,
-                    "You cannot update another doctor's appointment"
-            );
-
+                    "You cannot update another doctor's appointment");
             appointmentAuthorizationService.validateDoctorRequestOwner(
                     currentDoctor,
                     request.getDoctorId(),
@@ -241,23 +244,6 @@ public class AppointmentService {
         return mapper.toResponse(savedAppointment);
     }
 
-    private Patient getCurrentPatient(User currentUser) {
-        return patientRepository.findByUserId(currentUser.getId())
-                .orElseThrow(() ->
-                        new PatientNotFoundException(
-                                "Patient profile not found for current user"
-                        )
-                );
-    }
-
-    private Doctor getCurrentDoctor(User currentUser) {
-        return doctorRepository.findByUserId(currentUser.getId())
-                .orElseThrow(() ->
-                        new DoctorNotFoundException(
-                                "Doctor profile not found for current user"
-                        )
-                );
-    }
 
     private Appointment getAppointmentByIdOrThrow(Long id) {
         return appointmentRepository.findById(id).orElseThrow(() -> new AppointmentNotFoundException(
