@@ -372,4 +372,153 @@ public class AppointmentRepositoryTest {
         );
         assertTrue(exists);
     }
+
+    @Test
+    void findAllByPatientId_shouldReturnOnlyPatientAppointments() {
+        Specialization specialization =
+                specializationRepository.save(
+                        new Specialization("Cardiology")
+                );
+
+        Doctor doctor = doctorRepository.save(
+                new Doctor(
+                        "Alex",
+                        "Smith",
+                        5,
+                        true,
+                        specialization
+                )
+        );
+
+        Patient patientA = patientRepository.save(
+                new Patient(
+                        "Arman",
+                        "Tsarukian",
+                        LocalDate.of(2000, 5, 10),
+                        "+77001234567",
+                        true
+                )
+        );
+
+        Patient patientB = patientRepository.save(
+                new Patient(
+                        "John",
+                        "Doe",
+                        LocalDate.of(1995, 3, 15),
+                        "+77009999999",
+                        true
+                )
+        );
+
+        Appointment firstAppointment = new Appointment(
+                doctor,
+                patientA,
+                LocalDateTime.of(2026, 9, 25, 10, 0),
+                AppointmentStatus.SCHEDULED,
+                "Consultation"
+        );
+
+        Appointment secondAppointment = new Appointment(
+                doctor,
+                patientA,
+                LocalDateTime.of(2026, 9, 26, 10, 0),
+                AppointmentStatus.SCHEDULED,
+                "Consultation"
+        );
+
+        Appointment thirdAppointment = new Appointment(
+                doctor,
+                patientB,
+                LocalDateTime.of(2026, 9, 27, 10, 0),
+                AppointmentStatus.SCHEDULED,
+                "Consultation"
+        );
+        appointmentRepository.save(firstAppointment);
+        appointmentRepository.save(secondAppointment);
+        appointmentRepository.save(thirdAppointment);
+        List<Appointment> result =
+                appointmentRepository.findAllByPatientId(patientA.getId());
+
+        assertEquals(2, result.size());
+        assertTrue(
+                result.stream()
+                        .allMatch(a ->
+                                a.getPatient().getId().equals(patientA.getId())
+                        )
+        );
+    }
+
+    @Test
+    void findAllByDoctorId_shouldReturnOnlyDoctorAppointments() {
+        Specialization specialization =
+                specializationRepository.save(
+                        new Specialization("Cardiology")
+                );
+
+        Doctor doctorA = doctorRepository.save(
+                new Doctor(
+                        "Alex",
+                        "Smith",
+                        5,
+                        true,
+                        specialization
+                )
+        );
+
+        Doctor doctorB = doctorRepository.save(
+                new Doctor(
+                        "Marat",
+                        "Oralgazin",
+                        7,
+                        true,
+                        specialization
+                )
+        );
+
+        Patient patient = patientRepository.save(
+                new Patient(
+                        "Arman",
+                        "Tsarukian",
+                        LocalDate.of(2000, 5, 10),
+                        "+77001234567",
+                        true
+                )
+        );
+
+        Appointment firstAppointment = new Appointment(
+                doctorA,
+                patient,
+                LocalDateTime.of(2026, 9, 25, 10, 0),
+                AppointmentStatus.SCHEDULED,
+                "Consultation"
+        );
+
+        Appointment secondAppointment = new Appointment(
+                doctorA,
+                patient,
+                LocalDateTime.of(2026, 9, 26, 10, 0),
+                AppointmentStatus.SCHEDULED,
+                "Consultation"
+        );
+
+        Appointment thirdAppointment = new Appointment(
+                doctorB,
+                patient,
+                LocalDateTime.of(2026, 9, 27, 10, 0),
+                AppointmentStatus.SCHEDULED,
+                "Consultation"
+        );
+        appointmentRepository.save(firstAppointment);
+        appointmentRepository.save(secondAppointment);
+        appointmentRepository.save(thirdAppointment);
+        List<Appointment> result =
+                appointmentRepository.findAllByDoctorId(doctorA.getId());
+        assertEquals(2, result.size());
+        assertTrue(
+                result.stream()
+                        .allMatch(a ->
+                                a.getDoctor().getId().equals(doctorA.getId())
+                        )
+        );
+    }
 }
