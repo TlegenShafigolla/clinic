@@ -839,6 +839,82 @@ public class AppointmentServiceTest {
         verify(appointmentMapper).toResponse(secondAppointment);
     }
 
+    @Test
+    void findMyAppointments_shouldReturnPatientAppointments_whenUserIsPatient() {
+        User currentUser = new User(
+                "alex@gmail.com",
+                "Qwerty123",
+                Role.PATIENT,
+                true
+        );
+        Patient patient = new Patient(
+                "Maria",
+                "Manas",
+                LocalDate.of(2000, 5, 10),
+                "+77001234567",
+                true
+        );
+
+        ReflectionTestUtils.setField(patient, "id", 1L);
+
+        AppointmentRequest firstRequest = new AppointmentRequest(1L, 1L,
+                LocalDate.of(2026, 9, 25).atStartOfDay(),
+                AppointmentStatus.SCHEDULED,
+                "Consultation");
+
+        AppointmentRequest secondRequest = new AppointmentRequest(1L, 1L,
+                LocalDate.of(2026, 9, 20).atStartOfDay(),
+                AppointmentStatus.SCHEDULED,
+                "Checking");
+
+        Appointment firstAppointment = getAppointment(firstRequest);
+        Appointment secondAppointment = getAppointment(secondRequest);
+
+        AppointmentResponse firstAppointmentResponse = new AppointmentResponse(
+                10L,
+                1L,
+                "Alex",
+                "Smith",
+                1L,
+                "Maria",
+                "Manas",
+                firstRequest.getAppointmentDateTime(),
+                firstRequest.getStatus(),
+                firstRequest.getReason());
+        AppointmentResponse secondAppointmentResponse = new AppointmentResponse(
+                11L,
+                1L,
+                "Alex",
+                "Smith",
+                1L,
+                "Maria",
+                "Manas",
+                secondRequest.getAppointmentDateTime(),
+                secondRequest.getStatus(),
+                secondRequest.getReason());
+
+        when(currentUserService.getCurrentUser())
+                .thenReturn(currentUser);
+        when(currentProfileService.getCurrentPatient(currentUser))
+                .thenReturn(patient);
+        when(appointmentRepository.findAllByPatientId(1L))
+                .thenReturn(List.of(firstAppointment, secondAppointment));
+        when(appointmentMapper.toResponse(firstAppointment))
+                .thenReturn(firstAppointmentResponse);
+        when(appointmentMapper.toResponse(secondAppointment))
+                .thenReturn(secondAppointmentResponse);
+        List<AppointmentResponse> result =
+                appointmentService.findMyAppointments();
+
+        assertEquals(2, result.size());
+        assertEquals(firstAppointmentResponse, result.get(0));
+        assertEquals(secondAppointmentResponse, result.get(1));
+        verify(currentUserService).getCurrentUser();
+        verify(currentProfileService).getCurrentPatient(currentUser);
+        verify(appointmentRepository).findAllByPatientId(1L);
+        verify(appointmentMapper).toResponse(firstAppointment);
+        verify(appointmentMapper).toResponse(secondAppointment);
+    }
 
     @Test
     void update_shouldReturnUpdatedAppointmentResponse() {

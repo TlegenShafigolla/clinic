@@ -244,6 +244,25 @@ public class AppointmentService {
         return mapper.toResponse(savedAppointment);
     }
 
+    @Transactional(readOnly = true)
+    public List<AppointmentResponse> findMyAppointments() {
+        User currentUser = currentUserService.getCurrentUser();
+        Role role = currentUser.getRole();
+        List<Appointment> appointments = switch (role) {
+            case PATIENT -> {
+                Patient currentPatient = currentProfileService.getCurrentPatient(currentUser);
+                yield appointmentRepository.findAllByPatientId(currentPatient.getId());
+            }
+            case DOCTOR -> {
+                Doctor currentDoctor = currentProfileService.getCurrentDoctor(currentUser);
+                yield appointmentRepository.findAllByDoctorId(currentDoctor.getId());
+            }
+            case ADMIN -> appointmentRepository.findAll();
+        };
+        return appointments.stream()
+                .map(mapper::toResponse)
+                .toList();
+    }
 
     private Appointment getAppointmentByIdOrThrow(Long id) {
         return appointmentRepository.findById(id).orElseThrow(() -> new AppointmentNotFoundException(
