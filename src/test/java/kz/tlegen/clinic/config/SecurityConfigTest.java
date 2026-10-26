@@ -274,4 +274,46 @@ public class SecurityConfigTest {
                 .andExpect(status().isNoContent());
         verify(appointmentService).delete(1L);
     }
+
+    @Test
+    @WithMockUser(username = "patient@gmail.com", roles = "PATIENT")
+    void getMyAppointments_shouldBeAllowed_whenUserIsPatient() throws Exception {
+        when(appointmentService.findMyAppointments())
+                .thenReturn(List.of());
+        mockMvc.perform(
+                get("/api/appointments/my")
+        ).andExpect(status().isOk());
+        verify(appointmentService).findMyAppointments();
+    }
+
+    @Test
+    @WithMockUser(username = "doctor@gmail.com", roles = "DOCTOR")
+    void getMyAppointments_shouldBeAllowed_whenUserIsDoctor() throws Exception {
+        when(appointmentService.findMyAppointments())
+                .thenReturn(List.of());
+        mockMvc.perform(
+                get("/api/appointments/my")
+        ).andExpect(status().isOk());
+        verify(appointmentService).findMyAppointments();
+    }
+
+    @Test
+    @WithMockUser(username = "admin@gmail.com", roles = "ADMIN")
+    void getMyAppointments_shouldBeAllowed_whenUserIsAdmin() throws Exception {
+        when(appointmentService.findMyAppointments())
+                .thenReturn(List.of());
+        mockMvc.perform(
+                get("/api/appointments/my")
+        ).andExpect(status().isOk());
+        verify(appointmentService).findMyAppointments();
+    }
+
+    @Test
+    void getMyAppointments_shouldReturnUnauthorized_whenUserIsNotAuthenticated() throws Exception {
+        mockMvc.perform(
+                        get("/api/appointments/my")
+                )
+                .andExpect(status().isUnauthorized());
+        verify(appointmentService, never()).findMyAppointments();
+    }
 }

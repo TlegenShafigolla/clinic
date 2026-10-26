@@ -236,6 +236,49 @@ class AppointmentControllerTest {
     }
 
     @Test
+    void getMyAppointments_shouldReturn200AndAppointments() throws Exception {
+        LocalDateTime futureDate =
+                LocalDateTime.now()
+                        .plusDays(10)
+                        .withSecond(0)
+                        .withNano(0);
+        AppointmentResponse firstResponse = new AppointmentResponse(
+                10L,
+                1L,
+                "Alex",
+                "Smith",
+                1L,
+                "Maria",
+                "Manas",
+                futureDate,
+                AppointmentStatus.SCHEDULED,
+                "Consultation"
+        );
+        AppointmentResponse secondResponse = new AppointmentResponse(
+                11L,
+                1L,
+                "Alex",
+                "Smith",
+                1L,
+                "Maria",
+                "Manas",
+                futureDate,
+                AppointmentStatus.COMPLETED,
+                "Checking"
+        );
+        when(appointmentService.findMyAppointments())
+                .thenReturn(List.of(firstResponse, secondResponse));
+
+        mockMvc.perform(get("/api/appointments/my"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(2))
+                .andExpect(jsonPath("$[0].id").value(10))
+                .andExpect(jsonPath("$[1].id").value(11));
+
+        verify(appointmentService).findMyAppointments();
+    }
+
+    @Test
     void put_shouldUpdateAppointment() throws Exception {
         LocalDateTime futureDate =
                 LocalDateTime.now()

@@ -39,7 +39,12 @@ public class AppointmentController {
     public ResponseEntity<AppointmentResponse> findById(@PathVariable Long id) {
         return ResponseEntity.ok(service.findById(id));
     }
-
+    @GetMapping("/my")
+    public ResponseEntity<List<AppointmentResponse>> findMyAppointments() {
+        return ResponseEntity.ok(
+                service.findMyAppointments()
+        );
+    }
     @PutMapping("/{id}")
     public ResponseEntity<AppointmentResponse> update(@PathVariable Long id,
                                                       @Valid
