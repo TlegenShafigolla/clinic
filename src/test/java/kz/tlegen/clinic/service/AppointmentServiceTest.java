@@ -917,6 +917,152 @@ public class AppointmentServiceTest {
     }
 
     @Test
+    void findMyAppointments_shouldReturnDoctorAppointments_whenUserIsDoctor(){
+        User currentUser = new User(
+                "alex@gmail.com",
+                "Qwerty123",
+                Role.DOCTOR,
+                true
+        );
+
+        Doctor currentDoctor = new Doctor(
+                "Alex",
+                "Smith",
+                5,
+                true,
+                new Specialization("Cardiology")
+        );
+
+        ReflectionTestUtils.setField(currentDoctor, "id", 1L);
+        AppointmentRequest firstRequest = new AppointmentRequest(1L, 1L,
+                LocalDate.of(2026, 9, 25).atStartOfDay(),
+                AppointmentStatus.SCHEDULED,
+                "Consultation");
+
+        AppointmentRequest secondRequest = new AppointmentRequest(1L, 1L,
+                LocalDate.of(2026, 9, 20).atStartOfDay(),
+                AppointmentStatus.SCHEDULED,
+                "Checking");
+
+        Appointment firstAppointment = getAppointment(firstRequest);
+        Appointment secondAppointment = getAppointment(secondRequest);
+
+        AppointmentResponse firstAppointmentResponse = new AppointmentResponse(
+                10L,
+                1L,
+                "Alex",
+                "Smith",
+                1L,
+                "Maria",
+                "Manas",
+                firstRequest.getAppointmentDateTime(),
+                firstRequest.getStatus(),
+                firstRequest.getReason());
+        AppointmentResponse secondAppointmentResponse = new AppointmentResponse(
+                11L,
+                1L,
+                "Alex",
+                "Smith",
+                1L,
+                "Maria",
+                "Manas",
+                secondRequest.getAppointmentDateTime(),
+                secondRequest.getStatus(),
+                secondRequest.getReason());
+        when(currentUserService.getCurrentUser())
+                .thenReturn(currentUser);
+        when(currentProfileService.getCurrentDoctor(currentUser))
+                .thenReturn(currentDoctor);
+        when(appointmentRepository.findAllByDoctorId(1L))
+                .thenReturn(List.of(firstAppointment, secondAppointment));
+        when(appointmentMapper.toResponse(firstAppointment))
+                .thenReturn(firstAppointmentResponse);
+        when(appointmentMapper.toResponse(secondAppointment))
+                .thenReturn(secondAppointmentResponse);
+        List<AppointmentResponse> result =
+                appointmentService.findMyAppointments();
+
+        assertEquals(2, result.size());
+        assertEquals(firstAppointmentResponse, result.get(0));
+        assertEquals(secondAppointmentResponse, result.get(1));
+        verify(currentProfileService).getCurrentDoctor(currentUser);
+        verify(currentUserService).getCurrentUser();
+        verify(appointmentRepository).findAllByDoctorId(1L);
+        verify(appointmentMapper).toResponse(firstAppointment);
+        verify(appointmentMapper).toResponse(secondAppointment);
+    }
+
+    @Test
+    void findMyAppointments_shouldReturnAllAppointments_whenUserIsAdmin() {
+        User currentUser = new User(
+                "alex@gmail.com",
+                "Qwerty123",
+                Role.ADMIN,
+                true
+        );
+        when(currentUserService.getCurrentUser())
+                .thenReturn(currentUser);
+
+        AppointmentRequest firstRequest = new AppointmentRequest(1L, 1L,
+                LocalDate.of(2026, 9, 25).atStartOfDay(),
+                AppointmentStatus.SCHEDULED,
+                "Consultation");
+
+        AppointmentRequest secondRequest = new AppointmentRequest(1L, 1L,
+                LocalDate.of(2026, 9, 20).atStartOfDay(),
+                AppointmentStatus.SCHEDULED,
+                "Checking");
+
+        Appointment firstAppointment = getAppointment(firstRequest);
+        Appointment secondAppointment = getAppointment(secondRequest);
+
+        AppointmentResponse firstAppointmentResponse = new AppointmentResponse(
+                10L,
+                1L,
+                "Alex",
+                "Smith",
+                1L,
+                "Maria",
+                "Manas",
+                firstRequest.getAppointmentDateTime(),
+                firstRequest.getStatus(),
+                firstRequest.getReason());
+        AppointmentResponse secondAppointmentResponse = new AppointmentResponse(
+                11L,
+                1L,
+                "Alex",
+                "Smith",
+                1L,
+                "Maria",
+                "Manas",
+                secondRequest.getAppointmentDateTime(),
+                secondRequest.getStatus(),
+                secondRequest.getReason());
+
+        when(appointmentRepository.findAll())
+                .thenReturn(List.of(firstAppointment, secondAppointment));
+
+        when(appointmentMapper.toResponse(firstAppointment))
+                .thenReturn(firstAppointmentResponse);
+
+        when(appointmentMapper.toResponse(secondAppointment))
+                .thenReturn(secondAppointmentResponse);
+
+        List<AppointmentResponse> result =
+                appointmentService.findMyAppointments();
+
+        assertEquals(2, result.size());
+        assertEquals(firstAppointmentResponse, result.get(0));
+        assertEquals(secondAppointmentResponse, result.get(1));
+        verify(currentUserService).getCurrentUser();
+        verify(appointmentRepository).findAll();
+        verify(appointmentMapper).toResponse(firstAppointment);
+        verify(appointmentMapper).toResponse(secondAppointment);
+        verify(currentProfileService, never()).getCurrentPatient(any());
+        verify(currentProfileService, never()).getCurrentDoctor(any());
+    }
+
+    @Test
     void update_shouldReturnUpdatedAppointmentResponse() {
         User admin = new User(
                 "admin@gmail.com",
