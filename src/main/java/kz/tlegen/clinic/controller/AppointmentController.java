@@ -3,6 +3,7 @@ package kz.tlegen.clinic.controller;
 import jakarta.validation.Valid;
 import kz.tlegen.clinic.dto.appointment.AppointmentRequest;
 import kz.tlegen.clinic.dto.appointment.AppointmentResponse;
+import kz.tlegen.clinic.entity.AppointmentStatus;
 import kz.tlegen.clinic.service.AppointmentService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -39,12 +40,16 @@ public class AppointmentController {
     public ResponseEntity<AppointmentResponse> findById(@PathVariable Long id) {
         return ResponseEntity.ok(service.findById(id));
     }
+
     @GetMapping("/my")
-    public ResponseEntity<List<AppointmentResponse>> findMyAppointments() {
+    public ResponseEntity<List<AppointmentResponse>>
+    findMyAppointments(@RequestParam(required = false)
+                       AppointmentStatus status) {
         return ResponseEntity.ok(
-                service.findMyAppointments()
+                service.findMyAppointments(status)
         );
     }
+
     @PutMapping("/{id}")
     public ResponseEntity<AppointmentResponse> update(@PathVariable Long id,
                                                       @Valid

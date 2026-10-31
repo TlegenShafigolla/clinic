@@ -245,19 +245,32 @@ public class AppointmentService {
     }
 
     @Transactional(readOnly = true)
-    public List<AppointmentResponse> findMyAppointments() {
+    public List<AppointmentResponse> findMyAppointments(AppointmentStatus status) {
         User currentUser = currentUserService.getCurrentUser();
         Role role = currentUser.getRole();
         List<Appointment> appointments = switch (role) {
             case PATIENT -> {
                 Patient currentPatient = currentProfileService.getCurrentPatient(currentUser);
-                yield appointmentRepository.findAllByPatientId(currentPatient.getId());
+                if (status == null) {
+                    yield appointmentRepository.findAllByPatientId(currentPatient.getId());
+                }
+                yield appointmentRepository.findAllByPatientIdAndStatus(
+                        currentPatient.getId(),
+                        status);
             }
             case DOCTOR -> {
                 Doctor currentDoctor = currentProfileService.getCurrentDoctor(currentUser);
-                yield appointmentRepository.findAllByDoctorId(currentDoctor.getId());
+                if (status == null) {
+                    yield appointmentRepository.findAllByDoctorId(currentDoctor.getId());
+                }
+                yield appointmentRepository.findAllByDoctorIdAndStatus(
+                        currentDoctor.getId(),
+                        status
+                );
             }
-            case ADMIN -> appointmentRepository.findAll();
+            case ADMIN -> status == null
+                    ? appointmentRepository.findAll()
+                    : appointmentRepository.findAllByStatus(status);
         };
         return appointments.stream()
                 .map(mapper::toResponse)

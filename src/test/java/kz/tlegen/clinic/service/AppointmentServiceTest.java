@@ -904,7 +904,7 @@ public class AppointmentServiceTest {
         when(appointmentMapper.toResponse(secondAppointment))
                 .thenReturn(secondAppointmentResponse);
         List<AppointmentResponse> result =
-                appointmentService.findMyAppointments();
+                appointmentService.findMyAppointments(null);
 
         assertEquals(2, result.size());
         assertEquals(firstAppointmentResponse, result.get(0));
@@ -980,7 +980,7 @@ public class AppointmentServiceTest {
         when(appointmentMapper.toResponse(secondAppointment))
                 .thenReturn(secondAppointmentResponse);
         List<AppointmentResponse> result =
-                appointmentService.findMyAppointments();
+                appointmentService.findMyAppointments(null);
 
         assertEquals(2, result.size());
         assertEquals(firstAppointmentResponse, result.get(0));
@@ -1049,7 +1049,7 @@ public class AppointmentServiceTest {
                 .thenReturn(secondAppointmentResponse);
 
         List<AppointmentResponse> result =
-                appointmentService.findMyAppointments();
+                appointmentService.findMyAppointments(null);
 
         assertEquals(2, result.size());
         assertEquals(firstAppointmentResponse, result.get(0));
