@@ -897,7 +897,7 @@ public class AppointmentServiceTest {
                 .thenReturn(currentUser);
         when(currentProfileService.getCurrentPatient(currentUser))
                 .thenReturn(patient);
-        when(appointmentRepository.findAllByPatientId(1L))
+        when(appointmentRepository.findAllByPatientIdOrderByAppointmentDateTimeAsc(1L))
                 .thenReturn(List.of(firstAppointment, secondAppointment));
         when(appointmentMapper.toResponse(firstAppointment))
                 .thenReturn(firstAppointmentResponse);
@@ -911,7 +911,7 @@ public class AppointmentServiceTest {
         assertEquals(secondAppointmentResponse, result.get(1));
         verify(currentUserService).getCurrentUser();
         verify(currentProfileService).getCurrentPatient(currentUser);
-        verify(appointmentRepository).findAllByPatientId(1L);
+        verify(appointmentRepository).findAllByPatientIdOrderByAppointmentDateTimeAsc(1L);
         verify(appointmentMapper).toResponse(firstAppointment);
         verify(appointmentMapper).toResponse(secondAppointment);
     }
@@ -973,7 +973,7 @@ public class AppointmentServiceTest {
                 .thenReturn(currentUser);
         when(currentProfileService.getCurrentDoctor(currentUser))
                 .thenReturn(currentDoctor);
-        when(appointmentRepository.findAllByDoctorId(1L))
+        when(appointmentRepository.findAllByDoctorIdOrderByAppointmentDateTimeAsc(1L))
                 .thenReturn(List.of(firstAppointment, secondAppointment));
         when(appointmentMapper.toResponse(firstAppointment))
                 .thenReturn(firstAppointmentResponse);
@@ -987,7 +987,7 @@ public class AppointmentServiceTest {
         assertEquals(secondAppointmentResponse, result.get(1));
         verify(currentProfileService).getCurrentDoctor(currentUser);
         verify(currentUserService).getCurrentUser();
-        verify(appointmentRepository).findAllByDoctorId(1L);
+        verify(appointmentRepository).findAllByDoctorIdOrderByAppointmentDateTimeAsc(1L);
         verify(appointmentMapper).toResponse(firstAppointment);
         verify(appointmentMapper).toResponse(secondAppointment);
     }
@@ -1040,7 +1040,7 @@ public class AppointmentServiceTest {
                 secondRequest.getStatus(),
                 secondRequest.getReason());
 
-        when(appointmentRepository.findAll())
+        when(appointmentRepository.findAllByOrderByAppointmentDateTimeAsc())
                 .thenReturn(List.of(firstAppointment, secondAppointment));
 
         when(appointmentMapper.toResponse(firstAppointment))
@@ -1056,7 +1056,7 @@ public class AppointmentServiceTest {
         assertEquals(firstAppointmentResponse, result.get(0));
         assertEquals(secondAppointmentResponse, result.get(1));
         verify(currentUserService).getCurrentUser();
-        verify(appointmentRepository).findAll();
+        verify(appointmentRepository).findAllByOrderByAppointmentDateTimeAsc();
         verify(appointmentMapper).toResponse(firstAppointment);
         verify(appointmentMapper).toResponse(secondAppointment);
         verify(currentProfileService, never()).getCurrentPatient(any());
@@ -1120,10 +1120,10 @@ public class AppointmentServiceTest {
                 .thenReturn(currentUser);
         when(currentProfileService.getCurrentPatient(currentUser))
                 .thenReturn(patient);
-        when(appointmentRepository.findAllByPatientIdAndStatus(
+        when(appointmentRepository.findAllByPatientIdAndStatusOrderByAppointmentDateTimeAsc(
                 1L,
                 AppointmentStatus.SCHEDULED
-        )).thenReturn(List.of(firstAppointment, secondAppointment));
+        )).thenReturn(List.of(secondAppointment, firstAppointment));
         when(appointmentMapper.toResponse(firstAppointment))
                 .thenReturn(firstResponse);
 
@@ -1136,14 +1136,14 @@ public class AppointmentServiceTest {
                 );
 
         assertEquals(2, result.size());
-        assertEquals(firstResponse, result.get(0));
-        assertEquals(secondResponse, result.get(1));
+        assertEquals(secondResponse, result.get(0));
+        assertEquals(firstResponse, result.get(1));
         verify(appointmentRepository)
-                .findAllByPatientIdAndStatus(
+                .findAllByPatientIdAndStatusOrderByAppointmentDateTimeAsc(
                         1L,
                         AppointmentStatus.SCHEDULED
                 );
-        verify(appointmentRepository, never()).findAllByPatientId(any());
+        verify(appointmentRepository, never()).findAllByPatientIdOrderByAppointmentDateTimeAsc(any());
         verify(appointmentMapper).toResponse(firstAppointment);
         verify(appointmentMapper).toResponse(secondAppointment);
     }
@@ -1207,10 +1207,10 @@ public class AppointmentServiceTest {
         when(appointmentMapper.toResponse(secondAppointment)).thenReturn(secondResponse);
         when(currentUserService.getCurrentUser()).thenReturn(currentUser);
         when(currentProfileService.getCurrentDoctor(currentUser)).thenReturn(doctor);
-        when(appointmentRepository.findAllByDoctorIdAndStatus(
+        when(appointmentRepository.findAllByDoctorIdAndStatusOrderByAppointmentDateTimeAsc(
                 1L,
                 AppointmentStatus.SCHEDULED
-        )).thenReturn(List.of(firstAppointment, secondAppointment));
+        )).thenReturn(List.of(secondAppointment, firstAppointment));
 
         List<AppointmentResponse> result =
                 appointmentService.findMyAppointments(
@@ -1218,16 +1218,16 @@ public class AppointmentServiceTest {
                 );
 
         assertEquals(2, result.size());
-        assertEquals(firstResponse, result.get(0));
-        assertEquals(secondResponse, result.get(1));
+        assertEquals(secondResponse, result.get(0));
+        assertEquals(firstResponse, result.get(1));
 
         verify(appointmentRepository)
-                .findAllByDoctorIdAndStatus(
+                .findAllByDoctorIdAndStatusOrderByAppointmentDateTimeAsc(
                         1L,
                         AppointmentStatus.SCHEDULED
                 );
         verify(appointmentRepository, never())
-                .findAllByDoctorId(any());
+                .findAllByDoctorIdOrderByAppointmentDateTimeAsc(any());
         verify(currentUserService).getCurrentUser();
         verify(currentProfileService).getCurrentDoctor(currentUser);
         verify(appointmentMapper).toResponse(firstAppointment);
@@ -1280,7 +1280,7 @@ public class AppointmentServiceTest {
                 secondRequest.getReason());
 
         when(currentUserService.getCurrentUser()).thenReturn(currentUser);
-        when(appointmentRepository.findAllByStatus(
+        when(appointmentRepository.findAllByStatusOrderByAppointmentDateTimeAsc(
                 AppointmentStatus.SCHEDULED
         )).thenReturn(List.of(firstAppointment, secondAppointment));
         when(appointmentMapper.toResponse(firstAppointment)).thenReturn(firstResponse);
@@ -1293,8 +1293,8 @@ public class AppointmentServiceTest {
         assertEquals(2, result.size());
         assertEquals(firstResponse, result.get(0));
         assertEquals(secondResponse, result.get(1));
-        verify(appointmentRepository).findAllByStatus(AppointmentStatus.SCHEDULED);
-        verify(appointmentRepository, never()).findAll();
+        verify(appointmentRepository).findAllByStatusOrderByAppointmentDateTimeAsc(AppointmentStatus.SCHEDULED);
+        verify(appointmentRepository, never()).findAllByOrderByAppointmentDateTimeAsc();
         verify(currentProfileService, never()).getCurrentPatient(any());
         verify(currentProfileService, never()).getCurrentDoctor(any());
     }

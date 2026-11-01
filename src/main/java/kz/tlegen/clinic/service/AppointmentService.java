@@ -252,25 +252,31 @@ public class AppointmentService {
             case PATIENT -> {
                 Patient currentPatient = currentProfileService.getCurrentPatient(currentUser);
                 if (status == null) {
-                    yield appointmentRepository.findAllByPatientId(currentPatient.getId());
+                    yield appointmentRepository
+                            .findAllByPatientIdOrderByAppointmentDateTimeAsc(
+                                    currentPatient.getId()
+                            );
                 }
-                yield appointmentRepository.findAllByPatientIdAndStatus(
+                yield appointmentRepository.findAllByPatientIdAndStatusOrderByAppointmentDateTimeAsc(
                         currentPatient.getId(),
                         status);
             }
             case DOCTOR -> {
                 Doctor currentDoctor = currentProfileService.getCurrentDoctor(currentUser);
                 if (status == null) {
-                    yield appointmentRepository.findAllByDoctorId(currentDoctor.getId());
+                    yield appointmentRepository
+                            .findAllByDoctorIdOrderByAppointmentDateTimeAsc(
+                                    currentDoctor.getId()
+                            );
                 }
-                yield appointmentRepository.findAllByDoctorIdAndStatus(
+                yield appointmentRepository.findAllByDoctorIdAndStatusOrderByAppointmentDateTimeAsc(
                         currentDoctor.getId(),
                         status
                 );
             }
             case ADMIN -> status == null
-                    ? appointmentRepository.findAll()
-                    : appointmentRepository.findAllByStatus(status);
+                    ? appointmentRepository.findAllByOrderByAppointmentDateTimeAsc()
+                    : appointmentRepository.findAllByStatusOrderByAppointmentDateTimeAsc(status);
         };
         return appointments.stream()
                 .map(mapper::toResponse)

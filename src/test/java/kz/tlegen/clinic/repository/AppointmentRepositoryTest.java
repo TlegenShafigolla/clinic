@@ -188,7 +188,7 @@ public class AppointmentRepositoryTest {
     }
 
     @Test
-    void findAllByPatientIdAndStatus_shouldReturnOnlyMatchingAppointments() {
+    void findAllByPatientIdAndStatusOrderByAppointmentDateTimeAsc_shouldReturnMatchingAppointmentsSorted() {
         Specialization specialization =
                 specializationRepository.save(
                         new Specialization("Cardiology")
@@ -227,28 +227,28 @@ public class AppointmentRepositoryTest {
         Appointment firstAppointment = new Appointment(
                 doctor,
                 patientA,
-                LocalDateTime.of(2026, 9, 25, 10, 0),
+                LocalDateTime.of(2026, 11, 10, 15, 0),
                 AppointmentStatus.SCHEDULED,
                 "Consultation"
         );
         Appointment secondAppointment = new Appointment(
                 doctor,
                 patientA,
-                LocalDateTime.of(2026, 9, 26, 12, 0),
+                LocalDateTime.of(2026, 11, 10, 12, 0),
                 AppointmentStatus.COMPLETED,
                 "Checking"
         );
         Appointment thirdAppointment = new Appointment(
                 doctor,
                 patientA,
-                LocalDateTime.of(2026, 9, 26, 12, 0),
+                LocalDateTime.of(2026, 11, 10, 9, 0),
                 AppointmentStatus.SCHEDULED,
                 "Checking"
         );
         Appointment fourthAppointment = new Appointment(
                 doctor,
                 patientB,
-                LocalDateTime.of(2026, 9, 27, 15, 0),
+                LocalDateTime.of(2026, 11, 10, 8, 0),
                 AppointmentStatus.SCHEDULED,
                 "Consultation"
         );
@@ -258,7 +258,7 @@ public class AppointmentRepositoryTest {
         appointmentRepository.save(thirdAppointment);
         appointmentRepository.save(fourthAppointment);
         List<Appointment> result =
-                appointmentRepository.findAllByPatientIdAndStatus(
+                appointmentRepository.findAllByPatientIdAndStatusOrderByAppointmentDateTimeAsc(
                         patientA.getId(),
                         AppointmentStatus.SCHEDULED
                 );
@@ -270,10 +270,19 @@ public class AppointmentRepositoryTest {
                                         && a.getStatus() == AppointmentStatus.SCHEDULED
                         )
         );
+        assertEquals(
+                LocalDateTime.of(2026, 11, 10, 9, 0),
+                result.get(0).getAppointmentDateTime()
+        );
+
+        assertEquals(
+                LocalDateTime.of(2026, 11, 10, 15, 0),
+                result.get(1).getAppointmentDateTime()
+        );
     }
 
     @Test
-    void findAllByDoctorIdAndStatus_shouldReturnOnlyMatchingAppointments() {
+    void findAllByDoctorIdAndStatusOrderByAppointmentDateTimeAsc_shouldReturnMatchingAppointmentsSorted() {
         Specialization specialization =
                 specializationRepository.save(
                         new Specialization("Cardiology")
@@ -310,28 +319,28 @@ public class AppointmentRepositoryTest {
         Appointment firstAppointment = new Appointment(
                 doctorA,
                 patient,
-                LocalDateTime.of(2026, 9, 25, 10, 0),
+                LocalDateTime.of(2026, 11, 10, 15, 0),
                 AppointmentStatus.SCHEDULED,
                 "Consultation"
         );
         Appointment secondAppointment = new Appointment(
                 doctorA,
                 patient,
-                LocalDateTime.of(2026, 9, 26, 12, 0),
+                LocalDateTime.of(2026, 11, 10, 12, 0),
                 AppointmentStatus.COMPLETED,
                 "Checking"
         );
         Appointment thirdAppointment = new Appointment(
                 doctorA,
                 patient,
-                LocalDateTime.of(2026, 9, 26, 12, 0),
+                LocalDateTime.of(2026, 11, 10, 9, 0),
                 AppointmentStatus.SCHEDULED,
                 "Checking"
         );
         Appointment fourthAppointment = new Appointment(
                 doctorB,
                 patient,
-                LocalDateTime.of(2026, 9, 27, 15, 0),
+                LocalDateTime.of(2026, 11, 10, 8, 0),
                 AppointmentStatus.SCHEDULED,
                 "Consultation"
         );
@@ -341,7 +350,7 @@ public class AppointmentRepositoryTest {
         appointmentRepository.save(fourthAppointment);
 
         List<Appointment> result =
-                appointmentRepository.findAllByDoctorIdAndStatus(
+                appointmentRepository.findAllByDoctorIdAndStatusOrderByAppointmentDateTimeAsc(
                         doctorA.getId(),
                         AppointmentStatus.SCHEDULED
                 );
@@ -352,6 +361,15 @@ public class AppointmentRepositoryTest {
                                 a.getDoctor().getId().equals(doctorA.getId())
                                         && a.getStatus() == AppointmentStatus.SCHEDULED
                         )
+        );
+        assertEquals(
+                LocalDateTime.of(2026, 11, 10, 9, 0),
+                result.get(0).getAppointmentDateTime()
+        );
+
+        assertEquals(
+                LocalDateTime.of(2026, 11, 10, 15, 0),
+                result.get(1).getAppointmentDateTime()
         );
     }
 
@@ -413,7 +431,7 @@ public class AppointmentRepositoryTest {
         appointmentRepository.save(thirdAppointment);
         appointmentRepository.save(fourthAppointment);
         List<Appointment> result =
-                appointmentRepository.findAllByStatus(
+                appointmentRepository.findAllByStatusOrderByAppointmentDateTimeAsc(
                         AppointmentStatus.SCHEDULED);
         assertEquals(2, result.size());
         assertTrue(
@@ -421,6 +439,151 @@ public class AppointmentRepositoryTest {
                         .allMatch(a ->
                                 a.getStatus() == AppointmentStatus.SCHEDULED
                         )
+        );
+    }
+
+    @Test
+    void findAllByStatusOrderByAppointmentDateTimeAsc_shouldReturnMatchingAppointmentsSorted() {
+        Specialization specialization =
+                specializationRepository.save(
+                        new Specialization("Cardiology"));
+        Doctor doctor = doctorRepository.save(
+                new Doctor(
+                        "Alex",
+                        "Smith",
+                        5,
+                        true,
+                        specialization
+                ));
+        Patient patient = patientRepository.save(
+                new Patient(
+                        "Arman",
+                        "Tsarukian",
+                        LocalDate.of(2000, 5, 10),
+                        "+77001234567",
+                        true
+                ));
+        Appointment firstAppointment = new Appointment(
+                doctor,
+                patient,
+                LocalDateTime.of(2026, 11, 10, 15, 0),
+                AppointmentStatus.SCHEDULED,
+                "Consultation"
+        );
+        Appointment secondAppointment = new Appointment(
+                doctor,
+                patient,
+                LocalDateTime.of(2026, 11, 10, 12, 0),
+                AppointmentStatus.COMPLETED,
+                "Checking"
+        );
+        Appointment thirdAppointment = new Appointment(
+                doctor,
+                patient,
+                LocalDateTime.of(2026, 11, 10, 9, 0),
+                AppointmentStatus.SCHEDULED,
+                "Checking"
+        );
+        Appointment fourthAppointment = new Appointment(
+                doctor,
+                patient,
+                LocalDateTime.of(2026, 9, 10, 8, 0),
+                AppointmentStatus.CANCELLED,
+                "Consultation"
+        );
+        appointmentRepository.save(firstAppointment);
+        appointmentRepository.save(secondAppointment);
+        appointmentRepository.save(thirdAppointment);
+        appointmentRepository.save(fourthAppointment);
+        List<Appointment> result =
+                appointmentRepository.findAllByStatusOrderByAppointmentDateTimeAsc(
+                                AppointmentStatus.SCHEDULED
+                        );
+        assertEquals(2, result.size());
+
+        assertTrue(
+                result.stream()
+                        .allMatch(a ->
+                                a.getStatus() == AppointmentStatus.SCHEDULED
+                        )
+        );
+
+        assertEquals(
+                LocalDateTime.of(2026, 11, 10, 9, 0),
+                result.get(0).getAppointmentDateTime()
+        );
+
+        assertEquals(
+                LocalDateTime.of(2026, 11, 10, 15, 0),
+                result.get(1).getAppointmentDateTime()
+        );
+    }
+
+    @Test
+    void findAllByOrderByAppointmentDateTimeAsc_shouldReturnAllAppointmentsSorted() {
+        Specialization specialization =
+                specializationRepository.save(
+                        new Specialization("Cardiology"));
+        Doctor doctor = doctorRepository.save(
+                new Doctor(
+                        "Alex",
+                        "Smith",
+                        5,
+                        true,
+                        specialization
+                ));
+        Patient patient = patientRepository.save(
+                new Patient(
+                        "Arman",
+                        "Tsarukian",
+                        LocalDate.of(2000, 5, 10),
+                        "+77001234567",
+                        true
+                ));
+        Appointment firstAppointment = new Appointment(
+                doctor,
+                patient,
+                LocalDateTime.of(2026, 11, 10, 15, 0),
+                AppointmentStatus.SCHEDULED,
+                "Consultation"
+        );
+        Appointment secondAppointment = new Appointment(
+                doctor,
+                patient,
+                LocalDateTime.of(2026, 11, 10, 12, 0),
+                AppointmentStatus.COMPLETED,
+                "Checking"
+        );
+        Appointment thirdAppointment = new Appointment(
+                doctor,
+                patient,
+                LocalDateTime.of(2026, 11, 10, 9, 0),
+                AppointmentStatus.SCHEDULED,
+                "Checking"
+        );
+
+        appointmentRepository.save(firstAppointment);
+        appointmentRepository.save(secondAppointment);
+        appointmentRepository.save(thirdAppointment);
+
+        List<Appointment> result =
+                appointmentRepository.findAllByOrderByAppointmentDateTimeAsc();
+
+        assertEquals(3, result.size());
+
+        assertEquals(
+                LocalDateTime.of(2026, 11, 10, 9, 0),
+                result.get(0).getAppointmentDateTime()
+        );
+
+        assertEquals(
+                LocalDateTime.of(2026, 11, 10, 12, 0),
+                result.get(1).getAppointmentDateTime()
+        );
+
+        assertEquals(
+                LocalDateTime.of(2026, 11, 10, 15, 0),
+                result.get(2).getAppointmentDateTime()
         );
     }
 
@@ -674,7 +837,7 @@ public class AppointmentRepositoryTest {
         appointmentRepository.save(secondAppointment);
         appointmentRepository.save(thirdAppointment);
         List<Appointment> result =
-                appointmentRepository.findAllByPatientId(patientA.getId());
+                appointmentRepository.findAllByPatientIdOrderByAppointmentDateTimeAsc(patientA.getId());
 
         assertEquals(2, result.size());
         assertTrue(
@@ -749,13 +912,159 @@ public class AppointmentRepositoryTest {
         appointmentRepository.save(secondAppointment);
         appointmentRepository.save(thirdAppointment);
         List<Appointment> result =
-                appointmentRepository.findAllByDoctorId(doctorA.getId());
+                appointmentRepository.findAllByDoctorIdOrderByAppointmentDateTimeAsc(doctorA.getId());
         assertEquals(2, result.size());
         assertTrue(
                 result.stream()
                         .allMatch(a ->
                                 a.getDoctor().getId().equals(doctorA.getId())
                         )
+        );
+    }
+
+    @Test
+    void findAllByPatientIdOrderByAppointmentDateTimeAsc_shouldReturnAppointmentsSortedByDateTime() {
+        Specialization specialization =
+                specializationRepository.save(
+                        new Specialization("Cardiology")
+                );
+
+        Doctor doctor = doctorRepository.save(
+                new Doctor(
+                        "Alex",
+                        "Smith",
+                        5,
+                        true,
+                        specialization
+                )
+        );
+
+        Patient patient = patientRepository.save(
+                new Patient(
+                        "Arman",
+                        "Tsarukian",
+                        LocalDate.of(2000, 5, 10),
+                        "+77001234567",
+                        true
+                )
+        );
+        Appointment appointmentAt15 = new Appointment(
+                doctor,
+                patient,
+                LocalDateTime.of(2026, 11, 10, 15, 0),
+                AppointmentStatus.SCHEDULED,
+                "Consultation"
+        );
+
+        Appointment appointmentAt09 = new Appointment(
+                doctor,
+                patient,
+                LocalDateTime.of(2026, 11, 10, 9, 0),
+                AppointmentStatus.SCHEDULED,
+                "Consultation"
+        );
+
+        Appointment appointmentAt12 = new Appointment(
+                doctor,
+                patient,
+                LocalDateTime.of(2026, 11, 10, 12, 0),
+                AppointmentStatus.SCHEDULED,
+                "Consultation"
+        );
+        appointmentRepository.save(appointmentAt15);
+        appointmentRepository.save(appointmentAt09);
+        appointmentRepository.save(appointmentAt12);
+        List<Appointment> result =
+                appointmentRepository
+                        .findAllByPatientIdOrderByAppointmentDateTimeAsc(
+                                patient.getId()
+                        );
+        assertEquals(3, result.size());
+        assertEquals(
+                LocalDateTime.of(2026, 11, 10, 9, 0),
+                result.get(0).getAppointmentDateTime()
+        );
+
+        assertEquals(
+                LocalDateTime.of(2026, 11, 10, 12, 0),
+                result.get(1).getAppointmentDateTime()
+        );
+
+        assertEquals(
+                LocalDateTime.of(2026, 11, 10, 15, 0),
+                result.get(2).getAppointmentDateTime()
+        );
+    }
+
+    @Test
+    void findAllByDoctorIdOrderByAppointmentDateTimeAsc_shouldReturnAppointmentsSortedByDateTime() {
+        Specialization specialization =
+                specializationRepository.save(
+                        new Specialization("Cardiology")
+                );
+        Doctor doctor = doctorRepository.save(
+                new Doctor(
+                        "Alex",
+                        "Smith",
+                        5,
+                        true,
+                        specialization
+                ));
+        Patient patient = patientRepository.save(
+                new Patient(
+                        "Arman",
+                        "Tsarukian",
+                        LocalDate.of(2000, 5, 10),
+                        "+77001234567",
+                        true
+                ));
+        Appointment appointmentAt15 = new Appointment(
+                doctor,
+                patient,
+                LocalDateTime.of(2026, 11, 10, 15, 0),
+                AppointmentStatus.SCHEDULED,
+                "Consultation"
+        );
+
+        Appointment appointmentAt09 = new Appointment(
+                doctor,
+                patient,
+                LocalDateTime.of(2026, 11, 10, 9, 0),
+                AppointmentStatus.SCHEDULED,
+                "Consultation"
+        );
+
+        Appointment appointmentAt12 = new Appointment(
+                doctor,
+                patient,
+                LocalDateTime.of(2026, 11, 10, 12, 0),
+                AppointmentStatus.SCHEDULED,
+                "Consultation"
+        );
+        appointmentRepository.save(appointmentAt15);
+        appointmentRepository.save(appointmentAt09);
+        appointmentRepository.save(appointmentAt12);
+
+        List<Appointment> result =
+                appointmentRepository
+                        .findAllByDoctorIdOrderByAppointmentDateTimeAsc(
+                                doctor.getId()
+                        );
+        assertEquals(3, result.size());
+
+        assertEquals(
+                LocalDateTime.of(2026, 11, 10, 9, 0),
+                result.get(0).getAppointmentDateTime()
+        );
+
+        assertEquals(
+                LocalDateTime.of(2026, 11, 10, 12, 0),
+                result.get(1).getAppointmentDateTime()
+        );
+
+        assertEquals(
+                LocalDateTime.of(2026, 11, 10, 15, 0),
+                result.get(2).getAppointmentDateTime()
         );
     }
 }
