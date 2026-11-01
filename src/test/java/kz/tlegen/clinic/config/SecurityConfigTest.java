@@ -278,34 +278,34 @@ public class SecurityConfigTest {
     @Test
     @WithMockUser(username = "patient@gmail.com", roles = "PATIENT")
     void getMyAppointments_shouldBeAllowed_whenUserIsPatient() throws Exception {
-        when(appointmentService.findMyAppointments())
+        when(appointmentService.findMyAppointments(null))
                 .thenReturn(List.of());
         mockMvc.perform(
                 get("/api/appointments/my")
         ).andExpect(status().isOk());
-        verify(appointmentService).findMyAppointments();
+        verify(appointmentService).findMyAppointments(null);
     }
 
     @Test
     @WithMockUser(username = "doctor@gmail.com", roles = "DOCTOR")
     void getMyAppointments_shouldBeAllowed_whenUserIsDoctor() throws Exception {
-        when(appointmentService.findMyAppointments())
+        when(appointmentService.findMyAppointments(null))
                 .thenReturn(List.of());
         mockMvc.perform(
                 get("/api/appointments/my")
         ).andExpect(status().isOk());
-        verify(appointmentService).findMyAppointments();
+        verify(appointmentService).findMyAppointments(null);
     }
 
     @Test
     @WithMockUser(username = "admin@gmail.com", roles = "ADMIN")
     void getMyAppointments_shouldBeAllowed_whenUserIsAdmin() throws Exception {
-        when(appointmentService.findMyAppointments())
+        when(appointmentService.findMyAppointments(null))
                 .thenReturn(List.of());
         mockMvc.perform(
                 get("/api/appointments/my")
         ).andExpect(status().isOk());
-        verify(appointmentService).findMyAppointments();
+        verify(appointmentService).findMyAppointments(null);
     }
 
     @Test
@@ -314,6 +314,6 @@ public class SecurityConfigTest {
                         get("/api/appointments/my")
                 )
                 .andExpect(status().isUnauthorized());
-        verify(appointmentService, never()).findMyAppointments();
+        verify(appointmentService, never()).findMyAppointments(null);
     }
 }

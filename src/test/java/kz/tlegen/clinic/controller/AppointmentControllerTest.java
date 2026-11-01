@@ -266,7 +266,7 @@ class AppointmentControllerTest {
                 AppointmentStatus.COMPLETED,
                 "Checking"
         );
-        when(appointmentService.findMyAppointments())
+        when(appointmentService.findMyAppointments(null))
                 .thenReturn(List.of(firstResponse, secondResponse));
 
         mockMvc.perform(get("/api/appointments/my"))
@@ -275,7 +275,63 @@ class AppointmentControllerTest {
                 .andExpect(jsonPath("$[0].id").value(10))
                 .andExpect(jsonPath("$[1].id").value(11));
 
-        verify(appointmentService).findMyAppointments();
+        verify(appointmentService).findMyAppointments(null);
+    }
+
+    @Test
+    void getMyAppointments_shouldPassStatusToService() throws Exception {
+        LocalDateTime futureDate =
+                LocalDateTime.now()
+                        .plusDays(10)
+                        .withSecond(0)
+                        .withNano(0);
+        AppointmentResponse firstResponse = new AppointmentResponse(
+                10L,
+                1L,
+                "Alex",
+                "Smith",
+                1L,
+                "Maria",
+                "Manas",
+                futureDate,
+                AppointmentStatus.SCHEDULED,
+                "Consultation"
+        );
+        AppointmentResponse secondResponse = new AppointmentResponse(
+                11L,
+                1L,
+                "Alex",
+                "Smith",
+                1L,
+                "Maria",
+                "Manas",
+                futureDate,
+                AppointmentStatus.SCHEDULED,
+                "Checking"
+        );
+        when(appointmentService.findMyAppointments(
+                AppointmentStatus.SCHEDULED
+        )).thenReturn(List.of(firstResponse, secondResponse));
+
+        mockMvc.perform(
+                        get("/api/appointments/my")
+                                .param("status", "SCHEDULED")
+                ).andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(2));
+        verify(appointmentService)
+                .findMyAppointments(AppointmentStatus.SCHEDULED);
+        verify(appointmentService, never()).findMyAppointments(null);
+    }
+
+    @Test
+    void getMyAppointments_shouldReturn400_whenStatusIsInvalid() throws Exception {
+        mockMvc.perform(
+                        get("/api/appointments/my")
+                                .param("status", "INVALID")
+                )
+                .andExpect(status().isBadRequest());
+        verify(appointmentService, never())
+                .findMyAppointments(any());
     }
 
     @Test
